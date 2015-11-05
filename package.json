@@ -4,12 +4,14 @@
   "description": "Oauth2 and OpenIDConnect implementation, as (connect) middleware",
   "main": "index.js",
   "scripts": {
-    "test": "./node_modules/.bin/jasmine"
+    "test": "./node_modules/.bin/jasmine",
+    "watch": "./node_modules/.bin/nodemon ./node_modules/.bin/jasmine"
   },
   "author": "Chris Oloff <chris@uber5.com> (https://uber5.com/)",
   "license": "ISC",
   "devDependencies": {
     "jasmine": "^2.3.2",
-    "node-mocks-http": "^1.5.0"
+    "node-mocks-http": "^1.5.0",
+    "nodemon": "^1.8.1"
   }
 }
