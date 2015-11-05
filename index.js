@@ -1,10 +1,10 @@
-var validate = require('jsonschema').validate;
+const validate = require('jsonschema').validate;
 
-var OAuth2OIDC = function(options) {
+const OAuth2OIDC = function(options) {
   this.options = options || {};
 }
 
-authSchema = {
+const authSchema = {
   id: 'auth params',
   type: "object",
   response_type: { type: 'string' },
