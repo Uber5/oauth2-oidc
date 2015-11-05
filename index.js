@@ -1,13 +1,31 @@
+var validate = require('jsonschema').validate;
+
 var OAuth2OIDC = function(options) {
   this.options = options || {};
 }
 
+authSchema = {
+  id: 'auth params',
+  type: "object",
+  response_type: { type: 'string' },
+  client_id: { type: 'string' },
+  scope: { type: 'string' },
+  redirect_uri: { type: 'string' },
+  required: [ 'response_type', 'client_id', 'scope', 'redirect_uri' ]
+};
+
+function displayableValidationErrors(errors) {
+  return errors.map(function(e) { return e.message; }).join(', ');
+}
+
 function validateAuth(req, res, next) {
-  console.log('validate...');
-  if (req.params.x1) {
+
+  var errors = validate(req.params, authSchema).errors;
+
+  if (!errors.length) {
     return next();
   } else {
-    return next('expected x1 param');
+    return next(displayableValidationErrors(errors));
   }
 }
 OAuth2OIDC.prototype._validateAuth = validateAuth;

@@ -5,32 +5,39 @@ describe('auth', function() {
   var OAuth2OIDC = require('../index');
   var oidc = new OAuth2OIDC({});
 
-  it('succeeds if query param x1 given (DUMMY)', function(done) {
-    var req = httpMocks.createRequest({
+  function createRequest(params) {
+    return httpMocks.createRequest({
       method: 'GET',
         url: '/whatever',
-        params: {
-          x1: 3
-        }
+        params: params
     });
-    var res = httpMocks.createResponse();
-    oidc._validateAuth(req, res, function(err) {
-      expect(err).toBe(undefined);
-      done();
+  };
+
+  function createResponse() {
+    return httpMocks.createResponse();
+  };
+
+  describe('_validateAuth', function() {
+
+    it('fails without params', function(done) {
+      oidc._validateAuth(createRequest({}), createResponse(), function(err) {
+        expect(err).not.toBe(undefined);
+        done();
+      });
     });
+
+    it('succeeds with required params', function(done) {
+      oidc._validateAuth(createRequest({
+        response_type: 'x',
+        client_id: '123',
+        scope: 'bla',
+        redirect_uri: 'y',
+      }), createResponse(), function(err) {
+        expect(err).toBe(undefined);
+        done();
+      });
+    });
+
   });
-  it('fails if no param given', function(done) {
-    var req = httpMocks.createRequest({
-      method: 'GET',
-        url: '/whatever',
-        params: {
-          x2: 3
-        }
-    });
-    var res = httpMocks.createResponse();
-    oidc._validateAuth(req, res, function(err) {
-      expect(err).toEqual('expected x1 param');
-      done();
-    });
-  });
+
 });
