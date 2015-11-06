@@ -1,6 +1,6 @@
 "use strict";
 
-const connect = require('connect'),
+const express = require('express'),
       simpleOauth2 = require('simple-oauth2'),
       validate = require('jsonschema').validate,
       debug = require('debug')('oauth2-oidc')
@@ -15,7 +15,7 @@ const oauth2ConfigSchema = {
 class TestClient {
   constructor(config) {
     this.config = config || {};
-    const app = connect();
+    const app = express();
     app.use('/login', (req, res) => {
       res.writeHead(302, { location: this._authorizeUriFn() })
       res.end()
