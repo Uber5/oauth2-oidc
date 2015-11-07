@@ -20,7 +20,7 @@ function displayableValidationErrors(errors) {
 
 function validateAuth(req, res, next) {
 
-  var errors = validate(req.params, authSchema).errors;
+  var errors = validate(req.query, authSchema).errors;
 
   if (!errors.length) {
     return next();

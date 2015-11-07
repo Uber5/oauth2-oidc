@@ -5,11 +5,11 @@ describe('auth', function() {
   var OAuth2OIDC = require('../index');
   var oidc = new OAuth2OIDC({});
 
-  function createRequest(params) {
+  function createRequest(query) {
     return httpMocks.createRequest({
       method: 'GET',
         url: '/whatever',
-        params: params
+        query: query
     });
   };
 
