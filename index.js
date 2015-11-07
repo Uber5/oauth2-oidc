@@ -1,42 +1,49 @@
-const validate = require('jsonschema').validate;
+"use strict";
 
-const OAuth2OIDC = function(options) {
-  this.options = options || {};
-}
+const schemas = require('./lib/schemas')
 
-const authSchema = {
-  id: 'auth params',
-  type: "object",
-  response_type: { type: 'string' },
-  client_id: { type: 'string' },
-  scope: { type: 'string' },
-  redirect_uri: { type: 'string' },
-  required: [ 'response_type', 'client_id', 'scope', 'redirect_uri' ]
-};
+class OAuth2OIDC {
 
-function displayableValidationErrors(errors) {
-  return errors.map(function(e) { return e.message; }).join(', ');
-}
-
-function validateAuth(req, res, next) {
-
-  var errors = validate(req.query, authSchema).errors;
-
-  if (!errors.length) {
-    return next();
-  } else {
-    return next(displayableValidationErrors(errors));
+  constructor(options) {
+    this.options = options || {}
+    console.log('options', options)
+    const errorMessage = schemas.validationErrors(this.options, schemas.configSchema)
+    console.log('errorMessage', errorMessage)
+    if (errorMessage) throw new Error('invalid options: ' + errorMessage);
   }
-}
-OAuth2OIDC.prototype._validateAuth = validateAuth;
 
-function performAuth(req, res, next) {
-  console.log('do it');
-  next('oops');
-}
-OAuth2OIDC.prototype._performAuth = performAuth;
+  _validateAuth(req, res, next) {
+    var errors = schemas.validate(req.query, schemas.authSchema).errors;
+    if (!errors.length) {
+      return next();
+    } else {
+      return next(schemas.displayableValidationErrors(errors));
+    }
+  }
 
-OAuth2OIDC.prototype.auth = function() {
-  return [ validateAuth, performAuth ];
-};
+  _performAuth(req, res, next) {
+    console.log('do it');
+    var query = req.query
+    req.state.client.findOne({ key: query.client_id }, function(err, client) {
+      if (err) return next(`client with id ${ query.client_id } not found.`);
+      req.session.client_id = client.id
+      req.session.client_secret = client.secret // TODO: really needed?
+      return next()
+    })
+  }
+
+  _useState() {
+    return (req, res, next) => {
+      req.state = this.options.state
+      console.log('req.state', req.state)
+      next()
+    }
+  }
+
+  auth() {
+    return [ this._validateAuth, this._useState(), this._performAuth ];
+  }
+
+}
+
 module.exports = OAuth2OIDC;

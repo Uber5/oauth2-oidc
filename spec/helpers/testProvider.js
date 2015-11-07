@@ -8,7 +8,7 @@ const express = require('express'),
 class TestProvider {
   constructor(config) {
     const app = express()
-    const oauth2oidc = new OAuth2OIDC()
+    const oauth2oidc = new OAuth2OIDC(config)
     app.use('/user/authorize', oauth2oidc.auth())
     this._app = app
   }

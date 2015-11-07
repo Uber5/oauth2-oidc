@@ -6,7 +6,7 @@ describe('Visit client', function() {
   beforeEach(function(done) {
 
     client = new TestClient();
-    provider = new TestProvider();
+    provider = new TestProvider(testConfig);
 
     // first, make the provider listen
     const providerServer = provider.app.listen(function() {

@@ -3,7 +3,7 @@ var httpMocks = require('node-mocks-http');
 describe('auth', function() {
 
   var OAuth2OIDC = require('../index');
-  var oidc = new OAuth2OIDC({});
+  var oidc = new OAuth2OIDC(testConfig);
 
   function createRequest(query) {
     return httpMocks.createRequest({
