@@ -4,14 +4,15 @@ const Waterline = require('waterline'),
       sailsMemoryAdapter = require('sails-memory'),
       collections = require('./lib/collections')
 
-const waterline = new Waterline()
+const waterline = new Waterline();
 
-const clientSchema = collections.models.client
-clientSchema.connection = 'default'
+[ 'client', 'user' ].forEach((name) => {
+  const model = Object.assign({}, collections.models[name])
+  model.connection = 'default'
+  const collection = Waterline.Collection.extend(model)
+  waterline.loadCollection(collection)
+})
 
-const clientCollection = Waterline.Collection.extend(clientSchema)
-
-waterline.loadCollection(clientCollection)
 const config = {
   adapters: {
     memory: sailsMemoryAdapter
@@ -26,7 +27,17 @@ waterline.initialize(config, function(err, ontology) {
   if (err) return console.error(err);
 
   var Client = ontology.collections.client
-  console.log('Client.findOne', Client.findOne)
+  // console.log('Client.findOne', Client.findOne)
+  Client.create({
+    key: '123',
+    secret: '234',
+    name: 'some client',
+    redirect_uris: [ 'http://localhost:9999' ]
+  }).then((newClient) => {
+    Client.findOne({ key: '123' }).exec(function(err, model) {
+      console.log('findOne', err, model)
+    })
+  })
 })
 
 /*
