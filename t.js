@@ -2,12 +2,12 @@
 
 const Waterline = require('waterline'),
       sailsMemoryAdapter = require('sails-memory'),
-      collections = require('./lib/collections')
+      specifications = require('./lib/specifications')
 
 const waterline = new Waterline();
 
 [ 'client', 'user' ].forEach((name) => {
-  const model = Object.assign({}, collections.models[name])
+  const model = Object.assign({}, specifications.models[name])
   model.connection = 'default'
   const collection = Waterline.Collection.extend(model)
   waterline.loadCollection(collection)
