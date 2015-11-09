@@ -4,6 +4,7 @@ const express = require('express'),
       OAuth2OIDC = require('../..'),
       validate = require('jsonschema').validate,
       debug = require('debug')('oauth2-oidc'),
+      bodyParser = require('body-parser'),
       session = require('express-session'),
       crypto = require('crypto')
 
@@ -15,6 +16,7 @@ class TestProvider {
     app.engine('html', require('ejs').renderFile)
     app.set('view engine', 'ejs')
     app.set('views', './examples/views')
+    app.use(bodyParser.urlencoded({ extended: true }))
     app.use(session({
       resave: false,
       saveUninitialized: false,
@@ -30,6 +32,7 @@ class TestProvider {
     })
 
     app.post('/login', (req, res) => {
+      console.log('POST /login, body', req.body)
       res.render('fake-login.html')
     })
 
