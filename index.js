@@ -19,18 +19,22 @@ class OAuth2OIDC {
     }
   }
 
-  _performAuth(req, res, next) {
-    var query = req.query
-    req.state.collections.client.findOne({ key: query.client_id }, function(err, client) {
-      if (err) return next(`client with id ${ query.client_id } not found.`);
-      if (!client) {
-        return next(`client with id ${ query.client_id } not found.`)
-      } else {
-        req.session.client_id = client.id
-        req.session.client_secret = client.secret // TODO: really needed?
-        return next()
-      }
-    })
+  _performAuth() {
+    const options = this.options
+    return function(req, res, next) {
+      const query = req.query
+      req.state.collections.client.findOne({ key: query.client_id }, (err, client) => {
+        console.log('client.findOne', err, client)
+        if (err) return res.status(409).send(`client with id ${ query.client_id } not found.`);
+        if (!client) {
+          return res.status(404).send(`client with id ${ query.client_id } not found.`)
+        } else {
+          req.session.client_id = client.id
+          req.session.client_secret = client.secret // TODO: really needed?
+          return res.redirect(options.login_url)
+        }
+      })
+    }
   }
 
   _useState() {
@@ -41,7 +45,7 @@ class OAuth2OIDC {
   }
 
   auth() {
-    return [ this._validateAuth, this._useState(), this._performAuth ];
+    return [ this._validateAuth, this._useState(), this._performAuth() ];
   }
 
 }

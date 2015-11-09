@@ -1,9 +1,12 @@
+"use strict";
+
 const Browser = require('zombie');
 
 describe('Visit client', function() {
 
   const browser = new Browser();
   var client, config, provider;
+  let oauthClientConfig
 
   beforeEach(function(done) {
 
@@ -19,18 +22,21 @@ describe('Visit client', function() {
         const providerPort = providerServer.address().port
         debug(`providerServer, port=${ providerPort }`)
 
-        // second, make the client listen
+        // define client config
+        oauthClientConfig = {
+          clientID: 'client1',
+          clientSecret: 'secret123',
+          site: `http://localhost:${ providerPort }`,
+          tokenPath: '/user/token',
+          authorizationPath: '/user/authorize'
+        }
+
+        // make the client listen
         const clientServer = client.app.listen(function() {
           const port = clientServer.address().port
           console.log('client app listening at ' + port)
           client.baseUrl = `http://localhost:${ port }`
-          client.initOAuth({
-            clientID: 'client1',
-            clientSecret: 'secret123',
-            site: `http://localhost:${ providerPort }`,
-            tokenPath: '/user/token',
-            authorizationPath: '/user/authorize'
-          })
+          client.initOAuth(oauthClientConfig)
           const clientHomeUrl = 'http://localhost:' + clientServer.address().port + '/';
           browser.visit(clientHomeUrl, done);
         })
@@ -52,13 +58,45 @@ describe('Visit client', function() {
     done()
   })
 
-  it('allows logging in', function(done) {
+  it('rejects non-existing client', function(done) {
     browser.clickLink('a', function(err) {
-      expect(err).toBe(undefined);
-      console.log('browser.text', browser.text())
-      console.log('browser.location', browser.location.href)
-      browser.assert.text('title', 'Login');
-      done();
+      // expect(err).toBe(undefined)
+      expect(browser.text()).toMatch(/client/)
+      expect(browser.text()).toMatch(/not found/)
+      done()
     })
-  });
+  })
+
+  describe('when client1 exists', function() {
+
+    beforeEach(function(done) {
+      config.state.collections.client.create({
+        // id: oauthClientConfig.clientID,
+        key: oauthClientConfig.clientID,
+        secret: oauthClientConfig.clientSecret,
+        name: "Some client",
+        redirect_uris: [
+          'http://xyz.com'
+        ],
+      }).then(function(client) {
+        console.log('CLIENT', client)
+        done()
+      }).catch((err) => {
+        console.log('ERR', err)
+        throw new Error(err)
+      })
+    })
+
+    it('allows logging in', function(done) {
+      browser.clickLink('a', function(err) {
+        expect(err).toBe(undefined);
+        console.log('browser.text', browser.text())
+        console.log('browser.location', browser.location.href)
+        // browser.assert.text('title', 'Login');
+        done();
+      })
+    });
+
+  })
+
 })
