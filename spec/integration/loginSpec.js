@@ -1,8 +1,10 @@
 const Browser = require('zombie');
 
 describe('Visit client', function() {
+
   const browser = new Browser();
   var client, config, provider;
+
   beforeEach(function(done) {
 
     client = new TestClient();
@@ -35,17 +37,21 @@ describe('Visit client', function() {
       })
     })
   });
+
   afterEach(function(done) {
     config.state.connections.default._adapter.teardown(done)
   })
-  it('has config with all collections', function(done) {
+
+  // to avoid regression of commit 6f923c6
+  it('has config with all (more than one) collections', function(done) {
     const collections = config.state.collections;
     [ 'user', 'client' ].forEach((name) => {
-      console.log('config.state.collections', name)
-      // expect(collections[name]).not.toBe(undefined)
+      // console.log('config.state.collections', name)
+      expect(collections[name]).not.toBe(undefined)
     })
     done()
   })
+
   it('allows logging in', function(done) {
     browser.clickLink('a', function(err) {
       expect(err).toBe(undefined);

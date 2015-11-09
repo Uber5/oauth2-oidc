@@ -20,16 +20,16 @@ class OAuth2OIDC {
   }
 
   _performAuth(req, res, next) {
-    console.log('do it')
-    for (let n in req.state.collections) {
-      console.log('req.state.collections', n)
-    }
     var query = req.query
     req.state.collections.client.findOne({ key: query.client_id }, function(err, client) {
       if (err) return next(`client with id ${ query.client_id } not found.`);
-      req.session.client_id = client.id
-      req.session.client_secret = client.secret // TODO: really needed?
-      return next()
+      if (!client) {
+        return next(`client with id ${ query.client_id } not found.`)
+      } else {
+        req.session.client_id = client.id
+        req.session.client_secret = client.secret // TODO: really needed?
+        return next()
+      }
     })
   }
 

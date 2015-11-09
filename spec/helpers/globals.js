@@ -12,7 +12,6 @@ function getStateConfig(cb) {
   const waterline = new Waterline();
   for (var name in specifications) {
     let model = specifications[name]
-    console.log('load specifications', name, specifications[name].identity, model.identity)
     model.connection = 'default'
     const collection = Waterline.Collection.extend(model)
     waterline.loadCollection(collection)
@@ -34,9 +33,6 @@ global.debug = require('debug')('oauth2-oidc')
 global.testConfig = (cb) => {
   getStateConfig((err, ontology) => {
     if (err) throw new Error(err);
-    for (const name in ontology.collections) {
-      console.log('ONTOLOGY', name)
-    }
     cb(err, {
       state: ontology
     })
