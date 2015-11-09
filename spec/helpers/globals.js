@@ -35,7 +35,7 @@ global.testConfig = (cb) => {
     if (err) throw new Error(err);
     cb(err, {
       state: ontology,
-      login_url: '/login_url'
+      login_url: '/login'
     })
   })
 }

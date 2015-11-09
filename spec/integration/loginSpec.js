@@ -92,7 +92,7 @@ describe('Visit client', function() {
         expect(err).toBe(undefined);
         console.log('browser.text', browser.text())
         console.log('browser.location', browser.location.href)
-        // browser.assert.text('title', 'Login');
+        browser.assert.text('title', 'Login');
         done();
       })
     });

@@ -24,7 +24,6 @@ class OAuth2OIDC {
     return function(req, res, next) {
       const query = req.query
       req.state.collections.client.findOne({ key: query.client_id }, (err, client) => {
-        console.log('client.findOne', err, client)
         if (err) return res.status(409).send(`client with id ${ query.client_id } not found.`);
         if (!client) {
           return res.status(404).send(`client with id ${ query.client_id } not found.`)
