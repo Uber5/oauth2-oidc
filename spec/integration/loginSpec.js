@@ -89,11 +89,16 @@ describe('Visit client', function() {
 
     it('allows logging in', function(done) {
       browser.clickLink('a', function(err) {
-        expect(err).toBe(undefined);
+        expect(err).toBe(undefined)
         console.log('browser.text', browser.text())
         console.log('browser.location', browser.location.href)
-        browser.assert.text('title', 'Login');
-        done();
+        browser.assert.text('title', 'Login')
+        browser.fill('username', 'chris1')
+        .fill('password', 'so-secret')
+        .pressButton('Login', function() {
+          browser.assert.text('p', 'Logged in as chris1') // TODO: this should be back on the TestClient
+          done();
+        })
       })
     });
 

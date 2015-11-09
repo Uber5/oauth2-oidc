@@ -2,31 +2,17 @@
 
 const OAuth2OIDC = require('../..'),
       Waterline = require('waterline'),
-      sailsMemoryAdapter = require('sails-memory')
+      sailsMemoryAdapter = require('sails-memory'),
+      state = require('../../examples/state')
 
 global.OAuth2OIDC = OAuth2OIDC
 
 function getStateConfig(cb) {
-  // set up persistence: waterline with memory adapter
-  const specifications = OAuth2OIDC.state.defaultSpecifications
-  const waterline = new Waterline();
-  for (var name in specifications) {
-    let model = specifications[name]
-    model.connection = 'default'
-    const collection = Waterline.Collection.extend(model)
-    waterline.loadCollection(collection)
-  }
-  const config = {
-    adapters: {
-      memory: sailsMemoryAdapter
-    },
-    connections: {
-      default: {
-        adapter: 'memory'
-      }
-    }
-  }
-  waterline.initialize(config, cb)
+  return state.getDefaultStateConfig(
+      OAuth2OIDC.state.defaultSpecifications,
+      sailsMemoryAdapter,
+      cb
+  )
 }
 
 global.debug = require('debug')('oauth2-oidc')

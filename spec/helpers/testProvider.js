@@ -18,6 +18,8 @@ class TestProvider {
     app.use(session({
       resave: false,
       saveUninitialized: false,
+      // you will want a secret that does not change on every (re)start in
+      // production, this is just good for testing:
       secret: crypto.randomBytes(12).toString('base64')
     }))
 
@@ -25,6 +27,10 @@ class TestProvider {
 
     app.get('/login', (req, res) => {
       res.render('login.html')
+    })
+
+    app.post('/login', (req, res) => {
+      res.render('fake-login.html')
     })
 
     this._app = app
