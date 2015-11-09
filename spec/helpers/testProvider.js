@@ -6,7 +6,12 @@ const express = require('express'),
       debug = require('debug')('oauth2-oidc'),
       bodyParser = require('body-parser'),
       session = require('express-session'),
-      crypto = require('crypto')
+      crypto = require('crypto'),
+      bcrypt = require('bcryptjs')
+
+function userHasPassword(user, pwd) {
+  return bcrypt.compareSync(pwd, user.password)
+}
 
 class TestProvider {
   constructor(config) {
@@ -31,9 +36,30 @@ class TestProvider {
       res.render('login.html')
     })
 
-    app.post('/login', (req, res) => {
-      console.log('POST /login, body', req.body)
-      res.render('fake-login.html')
+    app.post('/login', (req, res, next) => {
+      const username = req.body.username
+      debug('POST /login, body', username, req.body)
+      config.state.collections.user.findOne({ sub: username })
+      .then((user) => {
+        debug('POST /login', user)
+        if (!user) {
+          return res.render('login.html', { flash: `user ${ username } not found.` })
+        }
+        if (userHasPassword(user, req.body.password)) {
+          return res.redirect(req.session.return_url || '/')
+        } else {
+          return res.render('login.html', { flash: 'Password incorrect.' })
+        }
+      }).catch((err) => {
+        debug('POST /login, err', err)
+        return next(err)
+      })
+    })
+
+    // error handling
+    app.use((err, req, res, next) => {
+      res.status(500)
+      res.render('error.html', { error: err })
     })
 
     this._app = app

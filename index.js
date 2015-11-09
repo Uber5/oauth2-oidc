@@ -29,6 +29,7 @@ class OAuth2OIDC {
           return res.status(404).send(`client with id ${ query.client_id } not found.`)
         } else {
           req.session.client_id = client.id
+          req.session.return_url = client.redirect_uris[0] // TODO: incorrect
           req.session.client_secret = client.secret // TODO: really needed?
           return res.redirect(options.login_url)
         }

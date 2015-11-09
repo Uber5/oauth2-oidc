@@ -4,6 +4,9 @@
 </head>
 <body>
   <h1>Login</h1>
+  <% if (!(typeof flash == 'undefined')) { %>
+    <p><%= flash %></p>
+  <% } %>
   <form method="POST">
     <input name="username" />
     <input name="password" />
