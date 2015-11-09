@@ -1,9 +1,8 @@
+"use strict";
+
 var httpMocks = require('node-mocks-http');
 
 describe('auth', function() {
-
-  var OAuth2OIDC = require('../index');
-  var oidc = new OAuth2OIDC(testConfig);
 
   function createRequest(query) {
     return httpMocks.createRequest({
@@ -16,6 +15,21 @@ describe('auth', function() {
   function createResponse() {
     return httpMocks.createResponse();
   };
+
+  let oidcConfig, oidc
+
+  beforeEach(function(done) {
+    testConfig(function(err, config) {
+      oidcConfig = config
+      oidc = new OAuth2OIDC(config);
+      done()
+    })
+  })
+
+  afterEach(function(done) {
+    // console.log('oidcConfig.state', oidcConfig.state)
+    oidcConfig.state.connections.default._adapter.teardown(done)
+  })
 
   describe('_validateAuth', function() {
 

@@ -7,7 +7,7 @@ const Waterline = require('waterline'),
 const waterline = new Waterline();
 
 [ 'client', 'user' ].forEach((name) => {
-  const model = Object.assign({}, specifications.models[name])
+  const model = Object.assign({}, specifications[name])
   model.connection = 'default'
   const collection = Waterline.Collection.extend(model)
   waterline.loadCollection(collection)

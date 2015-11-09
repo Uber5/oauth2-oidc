@@ -6,9 +6,7 @@ class OAuth2OIDC {
 
   constructor(options) {
     this.options = options || {}
-    console.log('options', options)
-    const errorMessage = schemas.validationErrors(this.options, schemas.configSchema)
-    console.log('errorMessage', errorMessage)
+    const errorMessage = schemas.validationErrors(this.options, schemas.configSchema);
     if (errorMessage) throw new Error('invalid options: ' + errorMessage);
   }
 
@@ -22,9 +20,12 @@ class OAuth2OIDC {
   }
 
   _performAuth(req, res, next) {
-    console.log('do it');
+    console.log('do it')
+    for (let n in req.state.collections) {
+      console.log('req.state.collections', n)
+    }
     var query = req.query
-    req.state.client.findOne({ key: query.client_id }, function(err, client) {
+    req.state.collections.client.findOne({ key: query.client_id }, function(err, client) {
       if (err) return next(`client with id ${ query.client_id } not found.`);
       req.session.client_id = client.id
       req.session.client_secret = client.secret // TODO: really needed?
@@ -35,7 +36,6 @@ class OAuth2OIDC {
   _useState() {
     return (req, res, next) => {
       req.state = this.options.state
-      console.log('req.state', req.state)
       next()
     }
   }
@@ -47,3 +47,6 @@ class OAuth2OIDC {
 }
 
 module.exports = OAuth2OIDC;
+module.exports.state = {
+  defaultSpecifications: require('./lib/specifications')
+}

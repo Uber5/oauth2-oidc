@@ -12,6 +12,8 @@ class TestProvider {
     const app = express()
     const oauth2oidc = new OAuth2OIDC(config)
     app.use(session({
+      resave: false,
+      saveUninitialized: false,
       secret: crypto.randomBytes(12).toString('base64')
     }))
     app.use('/user/authorize', oauth2oidc.auth())
