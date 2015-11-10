@@ -58,6 +58,7 @@ class TestProvider {
 
     // error handling
     app.use((err, req, res, next) => {
+      debug('err', err)
       res.status(500)
       res.render('error.html', { error: err })
     })

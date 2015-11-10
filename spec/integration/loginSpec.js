@@ -5,12 +5,13 @@ const Browser = require('zombie');
 describe('Visit client', function() {
 
   const browser = new Browser();
-  var client, config, provider;
+  var client, config, provider, username, clientPort;
   let oauthClientConfig
 
   beforeEach(function(done) {
 
     client = new TestClient();
+    username = nextUsername()
 
     testConfig(function(err, cfg) {
       if (err) throw new Error(err);
@@ -33,9 +34,9 @@ describe('Visit client', function() {
 
         // make the client listen
         const clientServer = client.app.listen(function() {
-          const port = clientServer.address().port
-          console.log('client app listening at ' + port)
-          client.baseUrl = `http://localhost:${ port }`
+          clientPort = clientServer.address().port
+          console.log('client app listening at ' + clientPort)
+          client.baseUrl = `http://localhost:${ clientPort }`
           client.initOAuth(oauthClientConfig)
           const clientHomeUrl = 'http://localhost:' + clientServer.address().port + '/';
           browser.visit(clientHomeUrl, done);
@@ -76,10 +77,19 @@ describe('Visit client', function() {
         secret: oauthClientConfig.clientSecret,
         name: "Some client",
         redirect_uris: [
-          'http://xyz.com'
+          `http://localhost:${ clientPort }`
         ],
       }).then(function(client) {
         console.log('CLIENT', client)
+        const u = config.state.collections.user.create({
+          sub: username,
+          password: 'so-secret',
+          passConfirm: 'so-secret',
+        })
+        console.log('U', u)
+        return u
+      }).then(function(user) {
+        console.log('USER', user)
         done()
       }).catch((err) => {
         console.log('ERR', err)
@@ -93,10 +103,10 @@ describe('Visit client', function() {
         console.log('browser.text', browser.text())
         console.log('browser.location', browser.location.href)
         browser.assert.text('title', 'Login')
-        browser.fill('username', 'chris1')
+        browser.fill('username', username)
         .fill('password', 'so-secret')
         .pressButton('Login', function() {
-          browser.assert.text('p', 'Logged in as chris1') // TODO: this should be back on the TestClient
+          browser.assert.text('p', 'Logged in as ' + username) // TODO: this should be back on the TestClient
           done();
         })
       })

@@ -25,3 +25,9 @@ global.testConfig = (cb) => {
     })
   })
 }
+
+let usernameCounter = 1
+global.nextUsername = () => {
+  return `chris${ usernameCounter++ }`
+}
+

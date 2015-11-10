@@ -1,6 +1,7 @@
 "use strict";
 
-const schemas = require('./lib/schemas')
+const schemas = require('./lib/schemas'),
+      debug = require('debug')('oauth2-oidc')
 
 class OAuth2OIDC {
 
@@ -19,7 +20,7 @@ class OAuth2OIDC {
     }
   }
 
-  _performAuth() {
+  _getClient() {
     const options = this.options
     return function(req, res, next) {
       const query = req.query
@@ -28,12 +29,21 @@ class OAuth2OIDC {
         if (!client) {
           return res.status(404).send(`client with id ${ query.client_id } not found.`)
         } else {
-          req.session.client_id = client.id
-          req.session.return_url = client.redirect_uris[0] // TODO: incorrect
-          req.session.client_secret = client.secret // TODO: really needed?
-          return res.redirect(options.login_url)
+          req.client = client
+          next()
         }
       })
+    }
+  }
+
+  _authorize() {
+    const options = this.options
+    return function(req, res, next) {
+      const client = req.client
+      debug('_getClient, req.query.response_type=' + req.query.response_type)
+      req.session.return_url = client.redirect_uris[0] // TODO: incorrect
+      req.session.client_secret = client.secret // TODO: really needed?
+      return res.redirect(options.login_url)
     }
   }
 
@@ -45,7 +55,7 @@ class OAuth2OIDC {
   }
 
   auth() {
-    return [ this._validateAuth, this._useState(), this._performAuth() ];
+    return [ this._validateAuth, this._useState(), this._getClient(), this._authorize() ];
   }
 
 }

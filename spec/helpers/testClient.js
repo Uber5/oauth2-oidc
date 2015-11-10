@@ -22,7 +22,7 @@ class TestClient {
     })
     app.use('/', (req, res) => {
       res.setHeader('content-type', 'text/html')
-      res.end('Hello, please <a href="/login">log in</a>.')
+      res.end('<html><body><p>Hello, please <a href="/login">log in</a>.</p></body></html>')
     });
     this._app = app;
     this._authorizeUriFn = () => {
