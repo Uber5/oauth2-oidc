@@ -121,27 +121,32 @@ class OAuth2OIDC {
     ];
   }
 
+  /** returns array with two elements, which should contain client and client
+   * secret */
+  _extractCredentialsFromHeaderValue(value) {
+    const match = value.match(/^Basic (.+)$/)
+    if (!match || match.length != 2 || !match[1]) return { error: 'expected "Basic" authorization header.' };
+    const decoded = new Buffer(match[1], 'base64').toString('utf-8')
+    const splitted = decoded.split(':')
+    if (splitted.length != 2) return { error: 'unable to extract credentials from Basic authorization header.'};
+    return { client_id: splitted[0], secret: splitted[1] }
+  }
+
   _getClientOnTokenRequest() {
     return (req, res, next) => {
 
-      /** returns array with two elements, which should contain client and client secret */
-      function extractCredentialsFromHeaderValue(value) { // TODO: have unit test for this one
-        const match = value.match(/^Basic (.+)$/)
-        if (match.length != 2 || !(match[1])) return { error: 'expected "Basic" authorization header.' };
-        const decoded = new Buffer(match[1], 'base64').toString('utf-8')
-        const splitted = decoded.split(':')
-        if (splitted.length != 2) return { error: 'unable to extract credentials from Basic authorization header.'};
-        return { client_id: splitted[0], secret: splitted[1] }
-      }
-
       new Promise((resolve, reject) => {
         const authHeader = req.get('authorization')
-        const credentials = authHeader && extractCredentialsFromHeaderValue(authHeader)
+        if (!authHeader) {
+          res.status(400).send('missing authorization header')
+          return reject()
+        }
+        const credentials = this._extractCredentialsFromHeaderValue(authHeader)
         if (credentials.error) {
           const msg = 'unable to extract credentials, see https://tools.ietf.org/html/rfc6749#section-2.3: '
             + credentials.error
           res.status(400).send(msg)
-          reject()
+          return reject()
         }
         resolve(credentials)
       }).then((credentials) => {
