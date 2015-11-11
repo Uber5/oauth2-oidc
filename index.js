@@ -61,35 +61,47 @@ class OAuth2OIDC {
 
   _authorize() {
     const options = this.options
-    return function(req, res, next) {
-      const client = req.client
-      const query = req.query
-      debug('_getClient, req.query', req.query)
-      // TODO: some checks missing (token type, scopes, ...)
-      new Promise((resolve, reject) => {
-        resolve(generateCode())
-      }).then((code) => {
-        return req.state.collections.auth.create({
-          client: req.client.id,
-          scope: query.scope.split(' '),
-          user: req.session.user,
-          code: code,
-          redirectUri: query.redirect_uri,
-          responseType: query.response_type,
-          status: 'created' // TODO: really needed?
+
+    const byResponseType = {
+      code: function(req, res, next) {
+        const client = req.client
+        const query = req.query
+        // TODO: some checks missing (token type, scopes, ...)
+        new Promise((resolve, reject) => {
+          resolve(generateCode())
+        }).then((code) => {
+          return req.state.collections.auth.create({
+            client: req.client.id,
+            scope: query.scope.split(' '),
+            user: req.session.user,
+            code: code,
+            redirectUri: query.redirect_uri,
+            responseType: query.response_type,
+            status: 'created' // TODO: really needed?
+          })
+        }).then((auth) => {
+          console.log('AUTH', auth)
+          return res.redirect(req.query.redirect_uri
+            + '?code=' + encodeURIComponent(auth.code)
+            + '&state=' + req.query.state)
+        }).catch((err) => {
+          console.log('ERR', err)
+          next(err)
         })
-      }).then((auth) => {
-        console.log('AUTH', auth)
-        req.session.return_url = client.redirect_uris[0] // TODO: incorrect
-        req.session.client_secret = client.secret // TODO: really needed?
-        return res.redirect(req.query.redirect_uri
-          + '?code=' + encodeURIComponent(auth.code)
-          + '&state=' + req.query.state)
-      }).catch((err) => {
-        console.log('ERR', err)
-        next(err)
-      })
+      }
     }
+
+    return function(req, res, next) {
+      const query = req.query
+      debug('_getClient, req.query', query)
+      const response_type = query.response_type
+      if (!byResponseType[response_type]) {
+        return next(`Invalid or unsupported response_type ${ response_type }`)
+      } else {
+        return byResponseType[response_type](req, res, next)
+      }
+    }
+
   }
 
   _useState() {
@@ -100,8 +112,13 @@ class OAuth2OIDC {
   }
 
   auth() {
-    return [ this._validateAuth, this._redirectToLoginUnlessLoggedIn(),
-           this._useState(), this._getClient(), this._authorize() ];
+    return [
+      this._validateAuth,
+      this._useState(),
+      this._getClient(),
+      this._redirectToLoginUnlessLoggedIn(),
+      this._authorize()
+    ];
   }
 
 }

@@ -54,4 +54,17 @@ describe('auth', function() {
 
   });
 
+  describe('_authorize', function() {
+    it('fails with invalid response_type', function(done) {
+      oidc._authorize()(createRequest({
+        response_type: 'x',
+        client_id: '123',
+        scope: 'bla',
+        redirect_uri: 'y'
+      }), createResponse(), function(err) {
+        expect(err).toMatch(/Invalid or unsupported response_type/)
+        done()
+      })
+    })
+  })
 });
