@@ -32,6 +32,8 @@ class TestProvider {
 
     app.all('/user/authorize', oauth2oidc.auth())
 
+    app.post('/user/token', oauth2oidc.token())
+
     app.get('/login', (req, res) => {
       res.render('login.html')
     })

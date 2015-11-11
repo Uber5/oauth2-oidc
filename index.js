@@ -121,6 +121,69 @@ class OAuth2OIDC {
     ];
   }
 
+  _getClientOnTokenRequest() {
+    return (req, res, next) => {
+
+      /** returns array with two elements, which should contain client and client secret */
+      function extractCredentialsFromHeaderValue(value) { // TODO: have unit test for this one
+        const match = value.match(/^Basic (.+)$/)
+        if (match.length != 2 || !(match[1])) return { error: 'expected "Basic" authorization header.' };
+        const decoded = new Buffer(match[1], 'base64').toString('utf-8')
+        const splitted = decoded.split(':')
+        if (splitted.length != 2) return { error: 'unable to extract credentials from Basic authorization header.'};
+        return { client_id: splitted[0], secret: splitted[1] }
+      }
+
+      new Promise((resolve, reject) => {
+        const authHeader = req.get('authorization')
+        const credentials = authHeader && extractCredentialsFromHeaderValue(authHeader)
+        if (credentials.error) {
+          const msg = 'unable to extract credentials, see https://tools.ietf.org/html/rfc6749#section-2.3: '
+            + credentials.error
+          res.status(400).send(msg)
+          reject()
+        }
+        resolve(credentials)
+      }).then((credentials) => {
+        return new Promise((resolve, reject) => {
+          req.state.collections.client.findOne({ key: credentials.client_id }, (err, client) => {
+            if (err) {
+              res.status(409).send(`client with id ${ query.client_id } not found.`);
+              reject()
+              return
+            }
+            if (!client) {
+              res.status(404).send(`client with id ${ query.client_id } not found.`)
+              reject()
+              return
+            }
+            if (client.secret != credentials.secret) {
+              res.status(401).send(`incorrect secret for client ${ credentials.client_id }`)
+              reject()
+              return
+            }
+            resolve(client)
+          })
+        })
+      }).then((client) => {
+        req.client = client
+        console.log('CLIENT CLIENT', client)
+        next()
+      }).catch((err) => {
+        debug(err)
+      })
+    }
+  }
+
+  token() {
+    return [
+      this._useState(),
+      this._getClientOnTokenRequest(),
+      (req, res, next) => {
+        next('not implemented')
+      }
+    ]
+  }
 }
 
 module.exports = OAuth2OIDC;

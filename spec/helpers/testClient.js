@@ -24,15 +24,23 @@ class TestClient {
       res.setHeader('content-type', 'text/html')
       res.end('<html><body><p>Hello, please <a href="/login">log in</a>.</p></body></html>')
     });
-    app.get('/callback', (req, res) => {
-      res.setHeader('content-type', 'text/html')
-      res.end('<html><body><p>callback, code=' + req.query.code + ', state=' +
-        req.query.state + '</p></body></html>')
+    app.get('/callback', (req, res, next) => {
+      const code = req.query.code
+      this.oauth2.authCode.getToken({
+        code: code,
+        redirect_uri: this.callbackUrl
+      }, (err, result) => {
+        if (err) return next(err);
+        const token = this.oauth2.accessToken.create(result)
+        res.setHeader('content-type', 'text/html')
+        res.end('<html><body><p>callback, code=' + req.query.code + ', state=' +
+          req.query.state + ', token=' + token + '</p></body></html>')
+      })
     })
     this._app = app;
     this._authorizeUriFn = () => {
       const uri = this.oauth2.authCode.authorizeURL({
-        redirect_uri: this._baseUrl + '/callback',
+        redirect_uri: this.callbackUrl,
         scope: 'userinfo openid profile', // TODO: configurable?
         state: 's0meRandomStaksjeherwy',
       })
@@ -45,6 +53,9 @@ class TestClient {
     const errors = validate(config, oauth2ConfigSchema).errors;
     if (errors.length) throw new Error(`invalid config: ${ errors }`);
     this.oauth2 = simpleOauth2(config)
+  }
+  get callbackUrl() {
+    return this._baseUrl + '/callback'
   }
   set baseUrl (url) {
     console.log('setting baseUrl to ' + url)
