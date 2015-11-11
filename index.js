@@ -1,7 +1,13 @@
 "use strict";
 
 const schemas = require('./lib/schemas'),
+      crypto = require('crypto'),
       debug = require('debug')('oauth2-oidc')
+
+function generateCode(length) {
+  length = length || 12
+  return crypto.randomBytes(length).toString('base64')
+}
 
 class OAuth2OIDC {
 
@@ -36,14 +42,53 @@ class OAuth2OIDC {
     }
   }
 
+  _verifyRedirectUri() {
+    return function(req, res, next) {
+    }
+  }
+
+  _redirectToLoginUnlessLoggedIn() {
+    return (req, res, next) => {
+      if (req.session && req.session.user) {
+        return next()
+      } else {
+        req.session.return_url = req.url
+        debug('_redirectToLoginUnlessLoggedIn, return_url=' + req.session.return_url)
+        return res.redirect(this.options.login_url)
+      }
+    }
+  }
+
   _authorize() {
     const options = this.options
     return function(req, res, next) {
       const client = req.client
-      debug('_getClient, req.query.response_type=' + req.query.response_type)
-      req.session.return_url = client.redirect_uris[0] // TODO: incorrect
-      req.session.client_secret = client.secret // TODO: really needed?
-      return res.redirect(options.login_url)
+      const query = req.query
+      debug('_getClient, req.query', req.query)
+      // TODO: some checks missing (token type, scopes, ...)
+      new Promise((resolve, reject) => {
+        resolve(generateCode())
+      }).then((code) => {
+        return req.state.collections.auth.create({
+          client: req.client.id,
+          scope: query.scope.split(' '),
+          user: req.session.user,
+          code: code,
+          redirectUri: query.redirect_uri,
+          responseType: query.response_type,
+          status: 'created' // TODO: really needed?
+        })
+      }).then((auth) => {
+        console.log('AUTH', auth)
+        req.session.return_url = client.redirect_uris[0] // TODO: incorrect
+        req.session.client_secret = client.secret // TODO: really needed?
+        return res.redirect(req.query.redirect_uri
+          + '?code=' + encodeURIComponent(auth.code)
+          + '&state=' + req.query.state)
+      }).catch((err) => {
+        console.log('ERR', err)
+        next(err)
+      })
     }
   }
 
@@ -55,7 +100,8 @@ class OAuth2OIDC {
   }
 
   auth() {
-    return [ this._validateAuth, this._useState(), this._getClient(), this._authorize() ];
+    return [ this._validateAuth, this._redirectToLoginUnlessLoggedIn(),
+           this._useState(), this._getClient(), this._authorize() ];
   }
 
 }

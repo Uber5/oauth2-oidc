@@ -80,16 +80,13 @@ describe('Visit client', function() {
           `http://localhost:${ clientPort }`
         ],
       }).then(function(client) {
-        console.log('CLIENT', client)
         const u = config.state.collections.user.create({
           sub: username,
           password: 'so-secret',
           passConfirm: 'so-secret',
         })
-        console.log('U', u)
         return u
       }).then(function(user) {
-        console.log('USER', user)
         done()
       }).catch((err) => {
         console.log('ERR', err)

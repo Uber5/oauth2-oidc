@@ -20,10 +20,15 @@ class TestClient {
       res.writeHead(302, { location: this._authorizeUriFn() })
       res.end()
     })
-    app.use('/', (req, res) => {
+    app.get('/', (req, res) => {
       res.setHeader('content-type', 'text/html')
       res.end('<html><body><p>Hello, please <a href="/login">log in</a>.</p></body></html>')
     });
+    app.get('/callback', (req, res) => {
+      res.setHeader('content-type', 'text/html')
+      res.end('<html><body><p>callback, code=' + req.query.code + ', state=' +
+        req.query.state + '</p></body></html>')
+    })
     this._app = app;
     this._authorizeUriFn = () => {
       const uri = this.oauth2.authCode.authorizeURL({
