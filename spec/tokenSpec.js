@@ -23,5 +23,16 @@ describe('token', function() {
       expect(result.client_id).toEqual('id')
       expect(result.secret).toEqual('key')
     })
+
+    it('verifies presence of authorization on token request', function(done) {
+      const req = createRequest({
+      })
+      const res = createResponse()
+      oidc._getClientOnTokenRequest()(req, res, function(err) {
+        expect(res.statusCode).toBe(400)
+        expect(res._getData()).toMatch(/missing authorization header/)
+        done()
+      })
+    })
   })
 })

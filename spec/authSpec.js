@@ -1,20 +1,6 @@
 "use strict";
 
-var httpMocks = require('node-mocks-http');
-
 describe('auth', function() {
-
-  function createRequest(query) {
-    return httpMocks.createRequest({
-      method: 'GET',
-        url: '/whatever',
-        query: query
-    });
-  };
-
-  function createResponse() {
-    return httpMocks.createResponse();
-  };
 
   let oidcConfig, oidc
 

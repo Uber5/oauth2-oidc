@@ -176,6 +176,7 @@ class OAuth2OIDC {
         next()
       }).catch((err) => {
         debug(err)
+        next(err)
       })
     }
   }
