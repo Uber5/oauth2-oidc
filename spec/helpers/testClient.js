@@ -34,7 +34,7 @@ class TestClient {
         const token = this.oauth2.accessToken.create(result)
         res.setHeader('content-type', 'text/html')
         res.end('<html><body><p>callback, code=' + req.query.code + ', state=' +
-          req.query.state + ', token=' + token + '</p></body></html>')
+          req.query.state + ', token=' + JSON.stringify(token) + '</p></body></html>')
       })
     })
     this._app = app;

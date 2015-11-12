@@ -44,6 +44,7 @@ class OAuth2OIDC {
 
   _verifyRedirectUri() {
     return function(req, res, next) {
+      next('huh? probably not needed')
     }
   }
 
@@ -183,7 +184,29 @@ class OAuth2OIDC {
       this._useState(),
       this._getClientOnTokenRequest(),
       (req, res, next) => {
-        res.send('not implemented')
+        console.log('req.body', req.body)
+        const collections = req.state.collections
+        collections.auth.findOne({ client: req.client.id, code: req.body.code }, (err, auth) => {
+          if (err || !auth) return next(`no token found for code ${ req.body.code }`)
+          debug('token endpoint, auth found', auth)
+          collections.access.create({
+            token: generateCode(48),
+            type: 'bearer',
+            scope: auth.scope,
+            client: req.client,
+            user: auth.user,
+            auth: auth
+          }).then((access) => {
+            res.send({
+              access_token: access.token,
+              token_type: access.type,
+              expires_in: 3600, // TODO: implement properly
+              refresh_token: 'xxx', // TODO: dummy
+            })
+          }).catch((err) => {
+            next(err)
+          })
+        })
       }
     ]
   }
