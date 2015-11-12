@@ -33,12 +33,15 @@ global.nextUsername = () => {
   return `chris${ usernameCounter++ }`
 }
 
-global.createRequest = function(query) {
-  return httpMocks.createRequest({
+global.createRequest = function(options) {
+  const defaults = {
     method: 'GET',
-      url: '/whatever',
-      query: query
-  });
+    url: '/whatever',
+    query: {},
+    params: {}
+  }
+  const effectiveOptions = Object.assign({}, defaults, options)
+  return httpMocks.createRequest(effectiveOptions)
 };
 
 global.createResponse = function() {
