@@ -60,11 +60,16 @@ class TestProvider {
     })
 
     // error handling
-    app.use((err, req, res, next) => {
-      debug('err', err)
-      res.status(500)
-      res.render('error.html', { error: err })
-    })
+    function testErrorHandler(err, req, res, next) {
+      debug('testErrorHandler', err)
+      if (res.headersSent) {
+        debug('error handling, headers sent already')
+        return next(err)
+      }
+      res.status(err.status || 500)
+      res.render('error.html', { error: err.message || JSON.stringify(err) })
+    }
+    app.use(testErrorHandler)
 
     this._app = app
   }

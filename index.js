@@ -138,45 +138,42 @@ class OAuth2OIDC {
       new Promise((resolve, reject) => {
         const authHeader = req.get('authorization')
         if (!authHeader) {
-          res.status(400).send('missing authorization header')
-          return reject()
+          return reject({ status: 401, message: 'missing authorization header' })
         }
         const credentials = this._extractCredentialsFromHeaderValue(authHeader)
         if (credentials.error) {
           const msg = 'unable to extract credentials, see https://tools.ietf.org/html/rfc6749#section-2.3: '
             + credentials.error
-          res.status(400).send(msg)
-          return reject()
+          return reject({ status: 401, message: msg })
         }
+        debug('credentials', credentials)
         resolve(credentials)
       }).then((credentials) => {
         return new Promise((resolve, reject) => {
           req.state.collections.client.findOne({ key: credentials.client_id }, (err, client) => {
             if (err) {
-              res.status(409).send(`client with id ${ query.client_id } not found.`);
-              reject()
-              return
+              const msg = `client with id ${ query.client_id } not found.`;
+              return reject({ status: 409, message: msg })
             }
             if (!client) {
-              res.status(404).send(`client with id ${ query.client_id } not found.`)
-              reject()
-              return
+              return reject({ status: 404, message: `client with id ${ query.client_id } not found.` })
             }
             if (client.secret != credentials.secret) {
-              res.status(401).send(`incorrect secret for client ${ credentials.client_id }`)
-              reject()
-              return
+              const msg = `incorrect secret for client ${ credentials.client_id }`
+              return reject({ status: 401, message: msg })
             }
             resolve(client)
           })
         })
       }).then((client) => {
         req.client = client
-        console.log('CLIENT CLIENT', client)
         next()
       }).catch((err) => {
-        debug(err)
-        next(err)
+        debug('err', err)
+        // TODO: must follow spec?
+        res.status(err.status)
+        res.send({ error_description: err.message })
+        next()
       })
     }
   }
@@ -186,7 +183,7 @@ class OAuth2OIDC {
       this._useState(),
       this._getClientOnTokenRequest(),
       (req, res, next) => {
-        next('not implemented')
+        res.send('not implemented')
       }
     ]
   }

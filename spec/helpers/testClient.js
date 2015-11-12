@@ -30,7 +30,7 @@ class TestClient {
         code: code,
         redirect_uri: this.callbackUrl
       }, (err, result) => {
-        if (err) return next(err);
+        if (err) return res.end('error: ' + JSON.stringify(err));
         const token = this.oauth2.accessToken.create(result)
         res.setHeader('content-type', 'text/html')
         res.end('<html><body><p>callback, code=' + req.query.code + ', state=' +

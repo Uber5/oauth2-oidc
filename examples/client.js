@@ -3,7 +3,7 @@ const TestClient = require('../spec/helpers/testClient')
 const config = {
   oauth2: {
     clientID: 'testclient',
-    clientSecret: 'testclient-secret',
+    clientSecret: 'very secret should it be',
     site: 'http://localhost:3001',
     tokenPath: '/user/token',
     authorizationPath: '/user/authorize',

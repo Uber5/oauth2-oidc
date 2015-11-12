@@ -29,8 +29,8 @@ describe('token', function() {
       })
       const res = createResponse()
       oidc._getClientOnTokenRequest()(req, res, function(err) {
-        expect(res.statusCode).toBe(400)
-        expect(res._getData()).toMatch(/missing authorization header/)
+        expect(res.statusCode).toBe(401)
+        expect(JSON.stringify(res._getData())).toMatch(/missing authorization header/)
         done()
       })
     })
