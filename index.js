@@ -178,18 +178,23 @@ class OAuth2OIDC {
     }
   }
 
-  _consumeClientToken() {
+  _consumeClientCode() {
     return (req, res, next) => {
       const collections = req.state.collections
       collections.auth.findOne({
         client: req.client.id,
-        code: req.body.code
-      }, (err, auth) => {
-        if (err || !auth) return next(`no token found for code ${ req.body.code }`)
+        code: req.body.code,
+        status: 'created'
+      }).then((auth) => {
         debug('token endpoint, auth found', auth)
-        // TODO: consume it
         req.auth = auth
+        auth.status = 'consumed'
+        return auth.save()
+      }).then(() => {
+        debug('auth saved', req.auth)
         next()
+      }).catch((err) => {
+        return next(`no token found for code ${ req.body.code }: ${ err }`)
       })
     }
   }
@@ -198,7 +203,7 @@ class OAuth2OIDC {
     return [
       this._useState(),
       this._getClientOnTokenRequest(),
-      this._consumeClientToken(),
+      this._consumeClientCode(),
       (req, res, next) => {
         console.log('req.body', req.body)
         const collections = req.state.collections
