@@ -135,7 +135,6 @@ class OAuth2OIDC {
 
   _getClientOnTokenRequest() {
     return (req, res, next) => {
-
       new Promise((resolve, reject) => {
         const authHeader = req.get('authorization')
         if (!authHeader) {
@@ -179,33 +178,47 @@ class OAuth2OIDC {
     }
   }
 
+  _consumeClientToken() {
+    return (req, res, next) => {
+      const collections = req.state.collections
+      collections.auth.findOne({
+        client: req.client.id,
+        code: req.body.code
+      }, (err, auth) => {
+        if (err || !auth) return next(`no token found for code ${ req.body.code }`)
+        debug('token endpoint, auth found', auth)
+        // TODO: consume it
+        req.auth = auth
+        next()
+      })
+    }
+  }
+
   token() {
     return [
       this._useState(),
       this._getClientOnTokenRequest(),
+      this._consumeClientToken(),
       (req, res, next) => {
         console.log('req.body', req.body)
         const collections = req.state.collections
-        collections.auth.findOne({ client: req.client.id, code: req.body.code }, (err, auth) => {
-          if (err || !auth) return next(`no token found for code ${ req.body.code }`)
-          debug('token endpoint, auth found', auth)
-          collections.access.create({
-            token: generateCode(48),
-            type: 'bearer',
-            scope: auth.scope,
-            client: req.client,
-            user: auth.user,
-            auth: auth
-          }).then((access) => {
-            res.send({
-              access_token: access.token,
-              token_type: access.type,
-              expires_in: 3600, // TODO: implement properly
-              refresh_token: 'xxx', // TODO: dummy
-            })
-          }).catch((err) => {
-            next(err)
+        const auth = req.auth
+        collections.access.create({
+          token: generateCode(48),
+          type: 'bearer',
+          scope: auth.scope,
+          client: req.client,
+          user: auth.user,
+          auth: auth
+        }).then((access) => {
+          res.send({
+            access_token: access.token,
+            token_type: access.type,
+            expires_in: 3600, // TODO: implement properly
+            refresh_token: 'xxx', // TODO: dummy
           })
+        }).catch((err) => {
+          next(err)
         })
       }
     ]
