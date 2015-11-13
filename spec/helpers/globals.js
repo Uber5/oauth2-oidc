@@ -33,6 +33,11 @@ global.nextUsername = () => {
   return `chris${ usernameCounter++ }`
 }
 
+let idCounter = 1
+global.nextId = () => {
+  return idCounter++
+}
+
 global.createRequest = function(options) {
   const defaults = {
     method: 'GET',

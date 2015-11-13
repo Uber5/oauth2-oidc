@@ -49,12 +49,16 @@ describe('token', function() {
         }
       })
       res = createResponse()
-      testConfig((err, c) => {
-        if (err) throw new Error(err);
+      new Promise((resolve, reject) => {
+        testConfig((err, c) => {
+          if (err) return reject(err);
+          resolve(c)
+        })
+      }).then((c) => {
         config = c
         req.state = config.state
-        req.client = { id: 123 } // TODO?
-        config.state.collections.auth.create({
+        req.client = { id: nextId() }
+        return config.state.collections.auth.create({
           client: req.client.id,
           scope: [ 'bla' ],
           user: 13,
@@ -62,12 +66,12 @@ describe('token', function() {
           redirectUri: req.body.redirect_uri,
           responseType: 'repTypeX',
           status: 'created'
-        }).then(() => {
-          done()
-        }).catch((err) => {
-          console.log('err', err)
-          throw new Error(err)
         })
+      }).then((auth) => {
+        done()
+      }).catch((err) => {
+        console.log('err', err)
+        throw new Error(err)
       })
     })
     afterEach(function(done) {
