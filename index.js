@@ -205,7 +205,6 @@ class OAuth2OIDC {
       this._getClientOnTokenRequest(),
       this._consumeClientCode(),
       (req, res, next) => {
-        console.log('req.body', req.body)
         const collections = req.state.collections
         const auth = req.auth
         collections.access.create({
@@ -228,6 +227,12 @@ class OAuth2OIDC {
       }
     ]
   }
+
+  userinfo() {
+    return [
+    ]
+  }
+
 }
 
 module.exports = OAuth2OIDC;

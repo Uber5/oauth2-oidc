@@ -4,8 +4,9 @@ const OAuth2OIDC = require('../..'),
       Waterline = require('waterline'),
       sailsMemoryAdapter = require('sails-memory'),
       state = require('../../examples/state'),
-      httpMocks = require('node-mocks-http')
-
+      httpMocks = require('node-mocks-http'),
+      factories = require('./factories'),
+      S = require('string')
 
 global.OAuth2OIDC = OAuth2OIDC
 
@@ -24,6 +25,14 @@ global.testConfig = (cb) => {
     cb(err, {
       state: ontology,
       login_url: '/login'
+    })
+  })
+}
+global.buildTestConfig = () => {
+  return new Promise((res, rej) => {
+    testConfig((err, cfg) => {
+      if (err) return rej(err);
+      res(cfg)
     })
   })
 }
@@ -53,3 +62,14 @@ global.createResponse = function() {
   return httpMocks.createResponse();
 };
 
+/** This provides us functions: given factory 'client', we'll have
+ * 'buildClient' */
+for (var f in factories) {
+  const name = S('_' + f).camelize().s
+  global['build' + name] = ((factoryName) => {
+    return (options) => {
+      const result = factories.Factory.build(factoryName, options || {})
+      return result
+    }
+  })(f)
+}
