@@ -6,7 +6,8 @@ const OAuth2OIDC = require('../..'),
       state = require('../../examples/state'),
       httpMocks = require('node-mocks-http'),
       factories = require('./factories'),
-      S = require('string')
+      S = require('string'),
+      express = require('express')
 
 global.OAuth2OIDC = OAuth2OIDC
 
@@ -73,3 +74,5 @@ for (var f in factories) {
     }
   })(f)
 }
+
+global.express = express

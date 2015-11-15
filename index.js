@@ -122,8 +122,6 @@ class OAuth2OIDC {
     ];
   }
 
-  /** returns array with two elements, which should contain client and client
-   * secret */
   _extractCredentialsFromHeaderValue(value) {
     const match = value.match(/^Basic (.+)$/)
     if (!match || match.length != 2 || !match[1]) return { error: 'expected "Basic" authorization header.' };
@@ -228,8 +226,53 @@ class OAuth2OIDC {
     ]
   }
 
+  _getAccessToken(value) {
+    const match = value.match(/^Bearer (.+)$/)
+    if (!match || match.length != 2 || !match[1]) return undefined;
+    return match[1]
+  }
+
+  _getAccessTokenAndUserOnRequest() {
+    return (req, res, next) => {
+      const token = _getAccessToken(req.get('authorization'))
+      if (!token) return next({ status: 401, message: 'missing or invalid bearer token' });
+      const collections = req.state.collections
+      Promise.resolve(collections.access.findOne({ token: token }))
+      .then((token) => {
+        if (!token) throw new Error({ status: 401, message: 'access token not found or expired' });
+        req.token = token
+        return collections.user.findOne({ id: token.sub })
+      }).then((user) => {
+        if (!user) throw new Error({ status: 401, message: 'user of token not found'});
+        req.user = user
+      }).catch((err) => {
+        console.log('err', err)
+        next(err)
+      })
+    }
+  }
+
+  _hasScopes() {
+    return (req, res, next) => {
+      next() // TODO
+    }
+  }
+
+  _sendUserInfo(req, res, next) {
+    const data = {
+      sub: req.user.sub,
+      name: 'dummy' // TODO: add more properties of the user to the response
+    }
+    res.send(data)
+    next()
+  }
+
   userinfo() {
     return [
+      this._useState(),
+      this._getAccessTokenAndUserOnRequest(),
+      this._hasScopes('openid', /profile|email/),
+      this._sendUserInfo
     ]
   }
 

@@ -33,8 +33,29 @@ describe('userinfo', function() {
       })
     })
     it('provides userinfo', function(done) {
-      expect(true).toBe(false) // TODO
-      done()
+      /** TODO: this is how we *could* test a full req/res cycle without
+       * actually listening: */
+      /*
+      const app = express(),
+            request = createRequest(),
+            response = createResponse()
+      app.all(oidc.userinfo())
+      app.handle(request, response, function(err) {
+        expect(true).toBe(false) // TODO
+        done()
+      })
+      */
+      const req = createRequest()
+      req.user = user
+      const res = createResponse()
+      oidc._sendUserInfo(req, res, function(err) {
+        expect(err).toBe(undefined)
+        const data = res._getData()
+        console.log('data', data)
+        expect(data.sub).toEqual(user.sub)
+        expect(data.name).toEqual('dummy')
+        done()
+      })
     })
   })
 
