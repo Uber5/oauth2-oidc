@@ -58,7 +58,7 @@ class TestClient {
     return this._baseUrl + '/callback'
   }
   set baseUrl (url) {
-    console.log('setting baseUrl to ' + url)
+    debug('setting baseUrl to ' + url)
     this._baseUrl = url
   }
   get app() {

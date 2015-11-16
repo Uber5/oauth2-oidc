@@ -10,11 +10,13 @@ const OAuth2OIDC = require('../..'),
       express = require('express'),
       reporters = require('jasmine-reporters')
 
-jasmine.getEnv().addReporter(new reporters.TerminalReporter({
+/** the below adds more text output, but 'conflicts' with the default
+ * reporter, see jasmine/lib/jasmine.js */
+/* jasmine.getEnv().addReporter(new reporters.TerminalReporter({
   verbosity: 3,
   color: true,
   showStack: true
-}))
+})) */
 
 global.OAuth2OIDC = OAuth2OIDC
 

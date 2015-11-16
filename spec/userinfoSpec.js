@@ -14,21 +14,21 @@ describe('userinfo', function() {
         config = c
         return buildUser()
       }).then((user) => {
-        console.log('user', user)
+        debug('user', user)
         return config.state.collections.user.create(user)
       }).then((savedUser) => {
-        console.log('savedUser', savedUser)
+        debug('savedUser', savedUser)
         user = savedUser
         return buildAccess({ user: savedUser.id })
       }).then((acc) => {
-        console.log('acc', acc)
+        debug('acc', acc)
         return config.state.collections.access.create(acc)
       }).then((savedAccess) => {
-        console.log('savedAccess', savedAccess)
+        debug('savedAccess', savedAccess)
         access = savedAccess
         done()
       }).catch((err) => {
-        console.log('err', err)
+        debug('err', err)
         done(err)
       })
     })
@@ -68,7 +68,7 @@ describe('userinfo', function() {
       oidc._sendUserInfo(req, res, function(err) {
         expect(err).toBe(undefined)
         const data = res._getData()
-        console.log('data', data)
+        debug('data', data)
         expect(data.sub).toEqual(user.sub)
         expect(data.name).toEqual('dummy')
         done()

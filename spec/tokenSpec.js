@@ -70,7 +70,7 @@ describe('token', function() {
       }).then((auth) => {
         done()
       }).catch((err) => {
-        console.log('err', err)
+        debug('err', err)
         throw new Error(err)
       })
     })
@@ -90,7 +90,7 @@ describe('token', function() {
         expect(err).toBe(undefined)
         oidc._consumeClientCode()(req, res, function(err) {
           expect(err).not.toBe(undefined)
-          console.log('err', err)
+          debug('err', err)
           done()
         })
       })

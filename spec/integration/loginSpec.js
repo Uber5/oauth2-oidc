@@ -35,7 +35,7 @@ describe('Visit client', function() {
         // make the client listen
         const clientServer = client.app.listen(function() {
           clientPort = clientServer.address().port
-          console.log('client app listening at ' + clientPort)
+          debug('client app listening at ' + clientPort)
           client.baseUrl = `http://localhost:${ clientPort }`
           client.initOAuth(oauthClientConfig)
           const clientHomeUrl = 'http://localhost:' + clientServer.address().port + '/';
@@ -53,7 +53,7 @@ describe('Visit client', function() {
   it('has config with all (more than one) collections', function(done) {
     const collections = config.state.collections;
     [ 'user', 'client' ].forEach((name) => {
-      // console.log('config.state.collections', name)
+      // debug('config.state.collections', name)
       expect(collections[name]).not.toBe(undefined)
     })
     done()
@@ -89,7 +89,7 @@ describe('Visit client', function() {
       }).then(function(user) {
         done()
       }).catch((err) => {
-        console.log('ERR', err)
+        debug('ERR', err)
         throw new Error(err)
       })
     })
@@ -97,8 +97,8 @@ describe('Visit client', function() {
     it('allows logging in', function(done) {
       browser.clickLink('a', function(err) {
         expect(err).toBe(undefined)
-        console.log('browser.text', browser.text())
-        console.log('browser.location', browser.location.href)
+        debug('browser.text', browser.text())
+        debug('browser.location', browser.location.href)
         browser.assert.text('title', 'Login')
         browser.fill('username', username)
         .fill('password', 'so-secret')
