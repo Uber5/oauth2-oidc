@@ -7,7 +7,14 @@ const OAuth2OIDC = require('../..'),
       httpMocks = require('node-mocks-http'),
       factories = require('./factories'),
       S = require('string'),
-      express = require('express')
+      express = require('express'),
+      reporters = require('jasmine-reporters')
+
+jasmine.getEnv().addReporter(new reporters.TerminalReporter({
+  verbosity: 3,
+  color: true,
+  showStack: true
+}))
 
 global.OAuth2OIDC = OAuth2OIDC
 
