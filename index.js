@@ -81,12 +81,12 @@ class OAuth2OIDC {
             status: 'created' // TODO: really needed?
           })
         }).then((auth) => {
-          console.log('AUTH', auth)
+          debug('_authorize, auth created', auth)
           return res.redirect(req.query.redirect_uri
             + '?code=' + encodeURIComponent(auth.code)
             + '&state=' + req.query.state)
         }).catch((err) => {
-          console.log('ERR', err)
+          debug('unable to authorize', err)
           next(err)
         })
       }
@@ -241,22 +241,21 @@ class OAuth2OIDC {
       Promise.resolve(collections.access.findOne({ token: token }))
       .then((token) => {
         if (!token) {
-          console.log('access token not found')
+          debug('access token not found', token)
           throw ({ status: 401, message: 'access token not found or expired' });
         }
         req.token = token
-        console.log('token', token)
+        debug('token found', token)
         return collections.user.findOne({ id: token.user })
       }).then((user) => {
         if (!user) {
-          console.log('user not found')
+          debug('user of token not found', req.token)
           throw ({ status: 401, message: 'user of token not found'});
         }
         req.user = user
         next()
       }).catch((err) => {
-        // TODO: this way of error handling is not working
-        console.log('err', JSON.stringify(err))
+        debug('err while getting access token and user', err)
         next(err)
       })
     }
