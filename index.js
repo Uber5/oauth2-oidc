@@ -185,6 +185,7 @@ class OAuth2OIDC {
         status: 'created'
       }).then((auth) => {
         debug('token endpoint, auth found', auth)
+        if (!auth) throw new Error(`auth for client ${ req.client.id } and code ${ req.body.code } not found.`)
         req.auth = auth
         auth.status = 'consumed'
         return auth.save()
@@ -234,19 +235,28 @@ class OAuth2OIDC {
 
   _getAccessTokenAndUserOnRequest() {
     return (req, res, next) => {
-      const token = _getAccessToken(req.get('authorization'))
+      const token = this._getAccessToken(req.get('authorization'))
       if (!token) return next({ status: 401, message: 'missing or invalid bearer token' });
       const collections = req.state.collections
       Promise.resolve(collections.access.findOne({ token: token }))
       .then((token) => {
-        if (!token) throw new Error({ status: 401, message: 'access token not found or expired' });
+        if (!token) {
+          console.log('access token not found')
+          throw ({ status: 401, message: 'access token not found or expired' });
+        }
         req.token = token
-        return collections.user.findOne({ id: token.sub })
+        console.log('token', token)
+        return collections.user.findOne({ id: token.user })
       }).then((user) => {
-        if (!user) throw new Error({ status: 401, message: 'user of token not found'});
+        if (!user) {
+          console.log('user not found')
+          throw ({ status: 401, message: 'user of token not found'});
+        }
         req.user = user
+        next()
       }).catch((err) => {
-        console.log('err', err)
+        // TODO: this way of error handling is not working
+        console.log('err', JSON.stringify(err))
         next(err)
       })
     }

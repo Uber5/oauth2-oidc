@@ -19,7 +19,7 @@ describe('userinfo', function() {
       }).then((savedUser) => {
         console.log('savedUser', savedUser)
         user = savedUser
-        return buildAccess({ user: savedUser })
+        return buildAccess({ user: savedUser.id })
       }).then((acc) => {
         console.log('acc', acc)
         return config.state.collections.access.create(acc)
@@ -30,6 +30,23 @@ describe('userinfo', function() {
       }).catch((err) => {
         console.log('err', err)
         done(err)
+      })
+    })
+    afterEach(function(done) {
+      config.state.connections.default._adapter.teardown(done)
+    })
+    it('retrieves access token and user info', function(done) {
+      const req = createRequest({
+        headers: {
+          authorization: `Bearer ${ access.token }`
+        }
+      }), res = createResponse()
+      req.state = config.state
+      oidc._getAccessTokenAndUserOnRequest()(req, res, (err) => {
+        expect(JSON.stringify(err)).toBe(undefined)
+        // expect(res.token).toEqual(access)
+        // expect(res.user).toEqual(user)
+        done()
       })
     })
     it('provides userinfo', function(done) {

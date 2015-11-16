@@ -38,6 +38,8 @@ class TestProvider {
       res.render('login.html')
     })
 
+    app.get('/userinfo', oauth2oidc.userinfo())
+
     app.post('/login', (req, res, next) => {
       const username = req.body.username
       debug('POST /login, body', username, req.body)
