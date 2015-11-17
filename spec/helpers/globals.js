@@ -12,11 +12,11 @@ const OAuth2OIDC = require('../..'),
 
 /** the below adds more text output, but 'conflicts' with the default
  * reporter, see jasmine/lib/jasmine.js */
-/* jasmine.getEnv().addReporter(new reporters.TerminalReporter({
+jasmine.getEnv().addReporter(new reporters.TerminalReporter({
   verbosity: 3,
   color: true,
   showStack: true
-})) */
+}))
 
 global.OAuth2OIDC = OAuth2OIDC
 
@@ -109,8 +109,7 @@ global.buildUsableAccessToken = (factoryArguments, callback) => {
       access: access
     })
   }).catch((err) => {
-    debug('err', err)
-    callback(err)
+    expect(err).toBeFalsy()
   })
 }
 
