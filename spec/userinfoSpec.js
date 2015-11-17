@@ -10,26 +10,12 @@ describe('userinfo', function() {
   describe('having an access token', function() {
     let config, user, access
     beforeEach(function(done) {
-      buildTestConfig().then((c) => {
-        config = c
-        return buildUser()
-      }).then((user) => {
-        debug('user', user)
-        return config.state.collections.user.create(user)
-      }).then((savedUser) => {
-        debug('savedUser', savedUser)
-        user = savedUser
-        return buildAccess({ user: savedUser.id })
-      }).then((acc) => {
-        debug('acc', acc)
-        return config.state.collections.access.create(acc)
-      }).then((savedAccess) => {
-        debug('savedAccess', savedAccess)
-        access = savedAccess
+      buildUsableAccessToken({}, (err, result) => {
+        if (err) throw new Error(err);
+        config = result.config
+        user = result.user
+        access = result.access
         done()
-      }).catch((err) => {
-        debug('err', err)
-        done(err)
       })
     })
     afterEach(function(done) {

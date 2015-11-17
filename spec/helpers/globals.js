@@ -84,4 +84,34 @@ for (var f in factories) {
   })(f)
 }
 
+global.buildUsableAccessToken = (factoryArguments, callback) => {
+  let config, user, access
+  factoryArguments = factoryArguments || {}
+  buildTestConfig().then((c) => {
+    config = c
+    return buildUser(factoryArguments['user'])
+  }).then((user) => {
+    debug('user', user)
+    return config.state.collections.user.create(user)
+  }).then((savedUser) => {
+    debug('savedUser', savedUser)
+    user = savedUser
+    return buildAccess(Object.assign({}, { user: savedUser.id }, factoryArguments['access']))
+  }).then((acc) => {
+    debug('acc', acc)
+    return config.state.collections.access.create(acc)
+  }).then((savedAccess) => {
+    debug('savedAccess', savedAccess)
+    access = savedAccess
+    callback(null, {
+      config: config,
+      user: user,
+      access: access
+    })
+  }).catch((err) => {
+    debug('err', err)
+    callback(err)
+  })
+}
+
 global.express = express

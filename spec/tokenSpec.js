@@ -97,4 +97,15 @@ describe('token', function() {
     })
   })
 
+  describe('expiring', function() {
+    // beforeEach, set up access token
+    /*
+    it('allows querying userinfo with access token', function(done) {
+    })
+    describe('when more than expiry time has passed', function() {
+      it('fails with http code 401', function(done) {
+      })
+    })
+    */
+  })
 })
