@@ -228,6 +228,7 @@ class OAuth2OIDC {
   }
 
   _getAccessToken(value) {
+    if (!value) return null;
     const match = value.match(/^Bearer (.+)$/)
     if (!match || match.length != 2 || !match[1]) return undefined;
     return match[1]
@@ -264,8 +265,21 @@ class OAuth2OIDC {
   }
 
   _hasScopes() {
+    const requiredScopes = Array.prototype.slice.call(arguments)
+    const isScopeGivenIn = (givenScopes, requested) => {
+      return givenScopes.reduce((memo, scope) => {
+        if (memo) return memo;
+        return scope.match(requested)
+      }, false)
+    }
     return (req, res, next) => {
-      next() // TODO
+      let err
+      requiredScopes.forEach(function(scope) {
+        if (!err && !isScopeGivenIn(req.token.scope, scope)) {
+          err = `scope ${ scope } required but not present in ${ req.token.scope }`
+        }
+      })
+      next(err)
     }
   }
 
