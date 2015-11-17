@@ -198,6 +198,13 @@ class OAuth2OIDC {
     }
   }
 
+  _expiresInSeconds(client, tokenCreatedAt) {
+    const maxLifeInSeconds = 3600 // TODO: configurable in client?
+    console.log(new Date().getTime(), tokenCreatedAt.getTime())
+    const lifeInSeconds = (new Date().getTime() - tokenCreatedAt.getTime()) / 1000
+    return Math.floor(maxLifeInSeconds - lifeInSeconds)
+  }
+
   token() {
     return [
       this._useState(),
@@ -217,7 +224,7 @@ class OAuth2OIDC {
           res.send({
             access_token: access.token,
             token_type: access.type,
-            expires_in: 3600, // TODO: implement properly
+            expires_in: this._expiresInSeconds(req.client, access.createdAt),
             refresh_token: 'xxx', // TODO: dummy
           })
         }).catch((err) => {

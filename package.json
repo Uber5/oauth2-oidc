@@ -19,6 +19,7 @@
     "istanbul": "^0.4.0",
     "jasmine": "^2.3.2",
     "jasmine-reporters": "^2.0.7",
+    "node-inspector": "^0.12.3",
     "node-mocks-http": "^1.5.0",
     "nodemon": "^1.8.1",
     "request": "^2.65.0",
