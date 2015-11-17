@@ -1,6 +1,9 @@
 "use strict";
 
 const express = require('express'),
+      session = require('express-session'),
+      request = require('request'),
+      crypto = require('crypto'),
       simpleOauth2 = require('simple-oauth2'),
       validate = require('jsonschema').validate,
       debug = require('debug')('oauth2-oidc')
@@ -15,7 +18,13 @@ const oauth2ConfigSchema = {
 class TestClient {
   constructor(config) {
     this.config = config || {};
+    debug('TextClient constructor, this.config', this.config)
     const app = express();
+    app.use(session({
+      resave: false,
+      saveUninitialized: false,
+      secret: crypto.randomBytes(12).toString('base64')
+    }))
     app.use('/login', (req, res) => {
       res.writeHead(302, { location: this._authorizeUriFn() })
       res.end()
@@ -32,9 +41,31 @@ class TestClient {
       }, (err, result) => {
         if (err) return res.end('error: ' + JSON.stringify(err));
         const token = this.oauth2.accessToken.create(result)
-        res.setHeader('content-type', 'text/html')
-        res.end('<html><body><p>callback, code=' + req.query.code + ', state=' +
-          req.query.state + ', token=' + JSON.stringify(token) + '</p></body></html>')
+        req.session.token = token
+        debug('keeping token, redirecting')
+        res.redirect('/my-profile')
+      })
+    })
+    app.get('/my-profile', (req, res, err) => {
+      const token = req.session.token
+      if (!token) return res.redirect('/login');
+      debug('getting userInfo', token)
+      const getUserinfo = (token, callback) => {
+        debug('this.oauthConfig', this.oauthConfig)
+        request({
+          url: this.oauthConfig.site + '/userinfo',
+          headers: {
+            authorization: `Bearer ${ token.token.access_token }`
+          }
+        }, (err, res, body) => {
+          if (err) throw new Error(err);
+          callback(err, body)
+        })
+      }
+      getUserinfo(token, function(err, userinfo) {
+        debug('userinfo', userinfo)
+        const sub = JSON.parse(userinfo).sub
+        res.send(`<html><body><p>Logged in as ${ sub }</p></body></html>`)
       })
     })
     this._app = app;
@@ -53,6 +84,7 @@ class TestClient {
     const errors = validate(config, oauth2ConfigSchema).errors;
     if (errors.length) throw new Error(`invalid config: ${ errors }`);
     this.oauth2 = simpleOauth2(config)
+    this.oauthConfig = config
   }
   get callbackUrl() {
     return this._baseUrl + '/callback'

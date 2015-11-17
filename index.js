@@ -235,8 +235,10 @@ class OAuth2OIDC {
 
   _getAccessTokenAndUserOnRequest() {
     return (req, res, next) => {
+      debug('req.headers', req.headers)
       const token = this._getAccessToken(req.get('authorization'))
       if (!token) return next({ status: 401, message: 'missing or invalid bearer token' });
+      debug('bearer token', token)
       const collections = req.state.collections
       Promise.resolve(collections.access.findOne({ token: token }))
       .then((token) => {
