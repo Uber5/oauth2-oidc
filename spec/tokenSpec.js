@@ -105,7 +105,6 @@ describe('token', function() {
     beforeEach(function(done) {
       // jasmine.clock().install()
       buildUsableAccessToken({}, (err, result) => {
-        console.log('err2', err)
         expect(err).toBeFalsy()
         config = result.config
         user = result.user
@@ -129,11 +128,22 @@ describe('token', function() {
     it('allows querying userinfo with access token', function(done) {
       // jasmine.clock().tick(60 * 60 * 1000 - 10) // one hour plus minus some ticks
       app.handle(req, res, function(err) {
-        // expect(err).toBeFalsy()
+        expect(err).toBeFalsy()
         done()
       })
     })
     describe('when more than expiry time has passed', function() {
+      function addMillisToDate(date, millis) {
+        return new Date(date.getTime() + millis)
+      }
+      beforeEach(function(done) {
+        // tweak 'createdAt' so that token appears expired
+        access.createdAt = addMillisToDate(
+          access.createdAt,
+          -1 * (60 * 60 * 1000 + 1) /* subtract 1 hour plus one ms */
+        )
+        access.save().then(done)
+      })
       it('fails with http code 401', function(done) {
         // jasmine.clock().tick(60 * 60 * 1000 + 1) // one hour plus one tick
         app.handle(req, res, function(err) {

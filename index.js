@@ -200,9 +200,10 @@ class OAuth2OIDC {
 
   _expiresInSeconds(client, tokenCreatedAt) {
     const maxLifeInSeconds = 3600 // TODO: configurable in client?
-    console.log(new Date().getTime(), tokenCreatedAt.getTime())
     const lifeInSeconds = (new Date().getTime() - tokenCreatedAt.getTime()) / 1000
-    return Math.floor(maxLifeInSeconds - lifeInSeconds)
+    const result = Math.floor(maxLifeInSeconds - lifeInSeconds)
+    debug('_expiresInSeconds', new Date().getTime(), tokenCreatedAt.getTime(), lifeInSeconds, result)
+    return result
   }
 
   token() {
@@ -290,6 +291,16 @@ class OAuth2OIDC {
     }
   }
 
+  _ensureNotExpired() {
+    return (req, res, next) => {
+      if (this._expiresInSeconds(req.client, req.token.createdAt) > 0) {
+        return next()
+      } else {
+        next({ error: 'expired', error_description: 'token provided has expired.' })
+      }
+    }
+  }
+
   _sendUserInfo(req, res, next) {
     const data = {
       sub: req.user.sub,
@@ -304,6 +315,7 @@ class OAuth2OIDC {
       this._useState(),
       this._getAccessTokenAndUserOnRequest(),
       this._hasScopes('openid', /profile|email/),
+      this._ensureNotExpired(),
       this._sendUserInfo
     ]
   }
