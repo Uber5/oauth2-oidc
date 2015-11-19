@@ -68,9 +68,7 @@ class OAuth2OIDC {
         const client = req.client
         const query = req.query
         // TODO: some checks missing (token type, scopes, ...)
-        new Promise((resolve, reject) => {
-          resolve(generateCode())
-        }).then((code) => {
+        Promise.resolve(generateCode()).then((code) => {
           return req.state.collections.auth.create({
             client: req.client.id,
             scope: query.scope.split(' '),
@@ -78,7 +76,7 @@ class OAuth2OIDC {
             code: code,
             redirectUri: query.redirect_uri,
             responseType: query.response_type,
-            status: 'created' // TODO: really needed?
+            status: 'created'
           })
         }).then((auth) => {
           debug('_authorize, auth created', auth)
