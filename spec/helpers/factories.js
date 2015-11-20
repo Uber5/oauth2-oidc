@@ -24,4 +24,5 @@ exports.client = Factory.define('client')
   .sequence('secret', (i) => `secret${ i }`)
   .sequence('name', (i) => `client-name-${ i }`)
   .attr('redirect_uris', [ 'http://some.host.here', 'https://another.host.there' ])
+  .attr('scope', [ 'openid', 'magicX' ])
 

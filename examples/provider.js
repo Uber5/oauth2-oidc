@@ -16,9 +16,9 @@ state.getDefaultStateConfig(specs, adapter, function(err, ontology) {
   })
 
   ontology.collections.user.create({
-    sub: 'chris1',
-    password: 'secret!',
-    passConfirm: 'secret!',
+    sub: 'chris1@test.com',
+    password: '123',
+    passConfirm: '123',
   }).catch((err) => {
     console.log('err', err)
   })
@@ -28,7 +28,8 @@ state.getDefaultStateConfig(specs, adapter, function(err, ontology) {
     key: 'testclient',
     secret: 'very secret should it be',
     name: 'some test client',
-    redirect_uris: [ 'http://localhost:3010' ]
+    redirect_uris: [ 'http://localhost:3010' ],
+    scope: [ 'openid', 'magiclink' ]
   }).then(function() {
     // TODO: refactor to create user in promise (before listening)
   }).then(function() {

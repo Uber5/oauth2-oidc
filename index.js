@@ -204,6 +204,89 @@ class OAuth2OIDC {
     return result
   }
 
+  magickey() {
+    return [
+      this._useState(),
+      this._getClientOnTokenRequest(),
+      this._clientHasScopes('magiclink'),
+      // TODO: also check if requested scopes are valid for this client
+      function(req, res, next) {
+        const sub = req.body.sub,
+              redirect_uri = req.body.redirect_uri,
+              scope = req.body.scope
+        let user = null
+        debug('magickey, body', req.body)
+        debug('magickey, sub', req.param('sub'))
+        if (!sub || !redirect_uri || !scope) {
+          return next({ error: 'missing_parameters', error_description: 'sub, redirect_uri and scope are required'})
+        }
+        Promise.resolve(req.state.collections.user.findOne({ sub: sub })).then((foundUser) => {
+          debug('foundUser', foundUser)
+          if (!foundUser) {
+            debug('user not found: ' + sub)
+            throw { status: 400, error: 'invalid_user', error_description: 'user not found' }
+          }
+          user = foundUser
+          return user
+        }).then((user2) => {
+          debug('user2', user2)
+          const code = generateCode()
+          return req.state.collections.auth.create({
+            client: req.client.id,
+            scope: scope.split(' '),
+            user: user,
+            code: code,
+            redirectUri: redirect_uri,
+            responseType: 'code',
+            status: 'created',
+            magicKey: generateCode(48)
+          })
+        }).then((auth) => {
+          res.status(201).send({ key: auth.magicKey })
+        }).catch((err) => {
+          debug('magickey error', err)
+          res.status(err.status || 500).send(err)
+        })
+      }
+    ]
+  }
+
+  magicopen() {
+    return [
+      this._useState(),
+      (req, res, next) => { // get auth via key
+        const key = req.query.key
+        debug('magicopen, key', key)
+        if (!key) {
+          return next({ error: 'missing_parameters', error_description: 'key is required'})
+        }
+        Promise.resolve(req.state.collections.auth.findOne({ magicKey: key }))
+        .then((auth) => {
+          if (!auth) {
+            return next({ error: 'key_invalid', error_description: 'key not found or expired' })
+          }
+          req.auth = auth
+          next()
+        })
+      },
+      (req, res, next) => { // check expiry
+        const auth = req.auth
+        const client = req.auth.client // TODO: may have to query
+        if (this._expiresInSeconds(client, auth.createdAt) < 0) {
+          return next({ error: 'key_invalid', error_description: 'key not found or expired' })
+        }
+        next()
+      },
+      (req, res, next) => { // respond
+        const auth = req.auth
+        debug('magicopen, redirect', auth)
+        return res.redirect(auth.redirectUri
+          + '?code=' + encodeURIComponent(auth.code)
+          + '&state=' + 'magic') // TODO: what about state? would have to come from client, and client would have to check??
+      }
+    ]
+  }
+
   token() {
     return [
       this._useState(),
@@ -270,22 +353,44 @@ class OAuth2OIDC {
     }
   }
 
-  _hasScopes() {
+  _isScopeGivenIn(givenScopes, requested) {
+    return givenScopes.reduce((memo, scope) => {
+      if (memo) return memo;
+      return scope.match(requested)
+    }, false)
+  }
+
+  _hasScopes(presentScopes, requiredScopes, callback) {
+    let err
+    requiredScopes.forEach((scope) => {
+      if (!err && !this._isScopeGivenIn(presentScopes, scope)) {
+        err = `scope ${ scope } required but not present in ${ presentScopes }`
+      }
+    })
+    callback(err)
+  }
+
+  _clientHasScopes() {
     const requiredScopes = Array.prototype.slice.call(arguments)
-    const isScopeGivenIn = (givenScopes, requested) => {
-      return givenScopes.reduce((memo, scope) => {
-        if (memo) return memo;
-        return scope.match(requested)
-      }, false)
-    }
     return (req, res, next) => {
-      let err
-      requiredScopes.forEach(function(scope) {
-        if (!err && !isScopeGivenIn(req.token.scope, scope)) {
-          err = `scope ${ scope } required but not present in ${ req.token.scope }`
-        }
+      if (!req.client || !req.client.scope) {
+        return next('no client scope present')
+      }
+      this._hasScopes(req.client.scope, requiredScopes, (err) => {
+        return next(err)
       })
-      next(err)
+    }
+  }
+
+  _tokenHasScopes() {
+    const requiredScopes = Array.prototype.slice.call(arguments)
+    return (req, res, next) => {
+      if (!req.token || !req.token.scope) {
+        return next('no token scope present')
+      }
+      this._hasScopes(req.token.scope, requiredScopes, (err) => {
+        next(err)
+      })
     }
   }
 
@@ -312,7 +417,7 @@ class OAuth2OIDC {
     return [
       this._useState(),
       this._getAccessTokenAndUserOnRequest(),
-      this._hasScopes('openid', /profile|email/),
+      this._tokenHasScopes('openid', /profile|email/),
       this._ensureNotExpired(),
       this._sendUserInfo
     ]

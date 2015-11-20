@@ -79,6 +79,7 @@ describe('Visit client', function() {
         redirect_uris: [
           `http://localhost:${ clientPort }`
         ],
+        scope: [ 'openid' ]
       }).then(function(client) {
         const u = config.state.collections.user.create({
           sub: username,

@@ -69,7 +69,7 @@ describe('userinfo', function() {
       ]
       scenarios.forEach(function(scenario) {
         const req = { token: { scope: scenario.given } }
-        oidc._hasScopes(...scenario.requested)(req, {}, function(err) {
+        oidc._tokenHasScopes(...scenario.requested)(req, {}, function(err) {
           if (scenario.expectError) {
             expect(err).toBeTruthy()
           } else {

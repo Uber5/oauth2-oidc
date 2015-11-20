@@ -21,7 +21,12 @@ class TestProvider {
     app.engine('html', require('ejs').renderFile)
     app.set('view engine', 'ejs')
     app.set('views', './examples/views')
+    app.use((err, req, res, next) => {
+      console.err(err.stack)
+      next(err)
+    })
     app.use(bodyParser.urlencoded({ extended: true }))
+    app.use(bodyParser.json())
     app.use(session({
       resave: false,
       saveUninitialized: false,
@@ -37,6 +42,9 @@ class TestProvider {
     app.get('/login', (req, res) => {
       res.render('login.html')
     })
+
+    app.post('/magickey', oauth2oidc.magickey())
+    app.get('/magicopen', oauth2oidc.magicopen())
 
     app.get('/userinfo', oauth2oidc.userinfo())
 
@@ -64,12 +72,17 @@ class TestProvider {
     // error handling
     function testErrorHandler(err, req, res, next) {
       debug('testErrorHandler', err)
+      debug(err)
       if (res.headersSent) {
         debug('error handling, headers sent already')
         return next(err)
       }
       res.status(err.status || 500)
-      res.render('error.html', { error: err.message || JSON.stringify(err) })
+      if (req.accepts('html')) {
+        res.render('error.html', { error: err.message || JSON.stringify(err) })
+      } else {
+        res.send({ error: err.message || JSON.stringify(err) })
+      }
     }
     app.use(testErrorHandler)
 
