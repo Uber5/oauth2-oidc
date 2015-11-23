@@ -31,7 +31,7 @@ class OAuth2OIDC {
     return function(req, res, next) {
       const query = req.query
       req.state.collections.client.findOne({ key: query.client_id }, (err, client) => {
-        if (err) return res.status(409).send(`client with id ${ query.client_id } not found.`);
+        if (err) return res.status(409).send(`client with id ${ query.client_id } not found. err=${ err }`);
         if (!client) {
           return res.status(404).send(`client with id ${ query.client_id } not found.`)
         } else {
@@ -134,13 +134,13 @@ class OAuth2OIDC {
       new Promise((resolve, reject) => {
         const authHeader = req.get('authorization')
         if (!authHeader) {
-          return reject({ status: 401, message: 'missing authorization header' })
+          return reject({ status: 401, error: 'invalid_request', error_description: 'missing authorization header' })
         }
         const credentials = this._extractCredentialsFromHeaderValue(authHeader)
         if (credentials.error) {
           const msg = 'unable to extract credentials, see https://tools.ietf.org/html/rfc6749#section-2.3: '
             + credentials.error
-          return reject({ status: 401, message: msg })
+          return reject({ status: 401, error: 'invalid_request', error_description: msg })
         }
         debug('credentials', credentials)
         resolve(credentials)
@@ -148,15 +148,19 @@ class OAuth2OIDC {
         return new Promise((resolve, reject) => {
           req.state.collections.client.findOne({ key: credentials.client_id }, (err, client) => {
             if (err) {
-              const msg = `client with id ${ query.client_id } not found.`;
-              return reject({ status: 409, message: msg })
+              const msg = `client with id ${ credentials.client_id } not found.`;
+              return reject({ status: 404, error: 'invalid_request', error_description: msg })
             }
             if (!client) {
-              return reject({ status: 404, message: `client with id ${ query.client_id } not found.` })
+              return reject({
+                status: 404,
+                error: 'invalid_request',
+                error_description: `client with id ${ credentials.client_id } not found.`
+              })
             }
             if (client.secret != credentials.secret) {
               const msg = `incorrect secret for client ${ credentials.client_id }`
-              return reject({ status: 401, message: msg })
+              return reject({ status: 401, error: 'invalid_request', error_description: msg })
             }
             resolve(client)
           })
@@ -166,10 +170,8 @@ class OAuth2OIDC {
         next()
       }).catch((err) => {
         debug('err', err)
-        // TODO: must follow spec?
-        res.status(err.status)
-        res.send({ error_description: err.message })
-        next()
+        // res.status(err.status || 500)
+        next(err)
       })
     }
   }

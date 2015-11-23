@@ -84,11 +84,20 @@ for (var f in factories) {
   })(f)
 }
 
+global.getBasicClientAuthHeader = (client) => {
+  return `Basic ${ new Buffer(client.key + ':' + client.secret).toString('base64') }`
+}
+
 global.buildUsableAccessToken = (factoryArguments, callback) => {
-  let config, user, access
+  let config, client, user, access
   factoryArguments = factoryArguments || {}
   buildTestConfig().then((c) => {
     config = c
+    return buildClient(factoryArguments.client)
+  }).then((client) => {
+    return config.state.collections.client.create(client)
+  }).then((savedClient) => {
+    client = savedClient
     return buildUser(factoryArguments['user'])
   }).then((user) => {
     debug('user', user)
@@ -96,7 +105,7 @@ global.buildUsableAccessToken = (factoryArguments, callback) => {
   }).then((savedUser) => {
     debug('savedUser', savedUser)
     user = savedUser
-    return buildAccess(Object.assign({}, { user: savedUser.id }, factoryArguments['access']))
+    return buildAccess(Object.assign({}, { user: savedUser.id, client: client.id }, factoryArguments['access']))
   }).then((acc) => {
     debug('acc', acc)
     return config.state.collections.access.create(acc)
@@ -106,7 +115,8 @@ global.buildUsableAccessToken = (factoryArguments, callback) => {
     callback(null, {
       config: config,
       user: user,
-      access: access
+      access: access,
+      client: client
     })
   }).catch((err) => {
     expect(err).toBeFalsy()

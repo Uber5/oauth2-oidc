@@ -29,8 +29,66 @@ describe('token', function() {
       const req = createRequest({})
       const res = createResponse()
       oidc._getClientOnTokenRequest()(req, res, function(err) {
-        expect(res.statusCode).toBe(401)
-        expect(JSON.stringify(res._getData())).toMatch(/missing authorization header/)
+        expect(err).toBeTruthy()
+        expect(err.error).toEqual('invalid_request')
+        expect(err.error_description).toMatch(/missing auth/)
+        done()
+      })
+    })
+  })
+
+  describe('on invalid client credentials', function() {
+    let req, res, config, client
+    beforeEach(function(done) {
+      req = createRequest({})
+      res = createResponse()
+      buildTestConfig().then((c) => {
+        config = c
+        oidc.options.state = config.state
+        req.state = config.state
+        return buildClient()
+      }).then((unsavedClient) => {
+        return config.state.collections.client.create(unsavedClient)
+      }).then((savedClient) => {
+        client = savedClient
+        done()
+      })
+    })
+    afterEach(function(done) {
+      config.state.connections.default._adapter.teardown(done)
+    })
+    it('rejects if there is no "authorization" header', function(done) {
+      oidc._getClientOnTokenRequest()(req, res, function(err) { // TODO: duplicate spec
+        expect(err).toBeTruthy()
+        expect(err.error).toBe('invalid_request')
+        expect(err.error_description).toMatch(/missing auth/)
+        done()
+      })
+    })
+    it('rejects invalid authorization header', function(done) {
+      req.headers = { authorization: 'bla' }
+      oidc._getClientOnTokenRequest()(req, res, function(err) {
+        expect(err).toBeTruthy()
+        expect(err.error).toBe('invalid_request')
+        expect(err.error_description).toMatch(/expected/)
+        done()
+      })
+    })
+    it('rejects non-existent client in header', function(done) {
+      req.headers.authorization = getBasicClientAuthHeader({ key: 'doesnt-exist', secret: '1234' })
+      oidc._getClientOnTokenRequest()(req, res, function(err) {
+        expect(err).toBeTruthy()
+        expect(err.error).toBe('invalid_request')
+        expect(err.error_description).toMatch(/not found/)
+        done()
+      })
+    })
+    it('rejects invalid client secret', function(done) {
+      req.headers.authorization = getBasicClientAuthHeader({ key: client.key, secret: 'incorrect secret' })
+      oidc._getClientOnTokenRequest()(req, res, function(err) {
+        expect(err).toBeTruthy()
+        expect(err.error).toBe('invalid_request')
+        expect(err.error_description).toMatch(/incorrect/)
         done()
       })
     })
@@ -103,7 +161,6 @@ describe('token', function() {
   describe('expiring', function() {
     let basetime, config, user, access, app, req, res
     beforeEach(function(done) {
-      // jasmine.clock().install()
       buildUsableAccessToken({}, (err, result) => {
         expect(err).toBeFalsy()
         config = result.config
@@ -122,11 +179,9 @@ describe('token', function() {
       })
     })
     afterEach(function(done) {
-      // jasmine.clock().uninstall()
       config.state.connections.default._adapter.teardown(done)
     })
     it('allows querying userinfo with access token', function(done) {
-      // jasmine.clock().tick(60 * 60 * 1000 - 10) // one hour plus minus some ticks
       app.handle(req, res, function(err) {
         expect(err).toBeFalsy()
         done()
@@ -145,12 +200,57 @@ describe('token', function() {
         access.save().then(done)
       })
       it('fails with http code 401', function(done) {
-        // jasmine.clock().tick(60 * 60 * 1000 + 1) // one hour plus one tick
         app.handle(req, res, function(err) {
           expect(err).toBeTruthy()
           done()
         })
       })
+    })
+  })
+
+  describe('refresh_token', function() {
+    let config, user, client, access, app, req, res
+    beforeEach(function(done) {
+      buildUsableAccessToken({}, (err, result) => {
+        expect(err).toBeFalsy()
+        config = result.config
+        user = result.user
+        access = result.access
+        client = result.client
+        app = express()
+        app.use(oidc.token())
+        req = createRequest({
+          headers: {
+            authorization: getBasicClientAuthHeader(client)
+          },
+          body: {
+            grant_type: 'refresh_token',
+          }
+        })
+        req.state = config.state
+        oidc.options.state = config.state
+        res = createResponse()
+        done()
+      })
+    })
+    afterEach(function(done) {
+      config.state.connections.default._adapter.teardown(done)
+    })
+    it('issues a usable access token for a refresh token', function(done) {
+      console.log('client', client)
+      done()
+      /* TODO
+      app.handle(req, res, function(err) {
+        expect(err).toBeFalsy()
+        const data = res._getData()
+        console.log('refresh_token, data', data)
+        expect(data.access_token).toBeTruthy()
+        expect(data.refresh_token).toBeTruthy()
+        expect(data.expires_in).toBeTruthy()
+        expect(data.token_type).toBeTruthy()
+        done()
+      })
+      */
     })
   })
 
