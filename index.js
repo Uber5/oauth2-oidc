@@ -178,6 +178,9 @@ class OAuth2OIDC {
 
   _consumeClientCode() {
     return (req, res, next) => {
+      if (!req.body.code) {
+        return next({ status: 400, error: 'invalid_request', error_description: '"code" is required' })
+      }
       const collections = req.state.collections
       collections.auth.findOne({
         client: req.client.id,
