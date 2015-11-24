@@ -297,8 +297,21 @@ class OAuth2OIDC {
     ]
   }
 
+  _createAccessToken(req) {
+    const collections = req.state.collections
+    const auth = req.auth
+    return collections.access.create({
+      token: generateCode(48),
+      type: 'bearer',
+      scope: auth.scope,
+      client: req.client,
+      user: auth.user,
+      auth: auth
+    })
+  }
+
   token() {
-    const self = this
+    const self = this // TODO: unnecessary
     return [
       (req, res, next) => { // validation
         if (!req.body.grant_type) {
@@ -312,27 +325,22 @@ class OAuth2OIDC {
       this._useState(),
       this._getClientOnTokenRequest(),
       (req, res, next) => {
-        self._consumeClientCode(req).then(() => {
-          const collections = req.state.collections
-          const auth = req.auth
-          return collections.access.create({
-            token: generateCode(48),
-            type: 'bearer',
-            scope: auth.scope,
-            client: req.client,
-            user: auth.user,
-            auth: auth
+        if (req.body.grant_type == 'authorization_code') {
+          self._consumeClientCode(req).then(() => {
+            return this._createAccessToken(req)
+          }).then((access) => {
+            res.send({
+              access_token: access.token,
+              token_type: access.type,
+              expires_in: this._expiresInSeconds(req.client, access.createdAt),
+              refresh_token: 'xxx', // TODO: dummy
+            })
+          }).catch((err) => {
+            next(err)
           })
-        }).then((access) => {
-          res.send({
-            access_token: access.token,
-            token_type: access.type,
-            expires_in: this._expiresInSeconds(req.client, access.createdAt),
-            refresh_token: 'xxx', // TODO: dummy
-          })
-        }).catch((err) => {
-          next(err)
-        })
+        } else if (req.body.grant_type == 'refresh_token') {
+          // TODO
+        }
       }
     ]
   }
