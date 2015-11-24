@@ -139,19 +139,15 @@ describe('token', function() {
       })
     })
     it('retrieves the auth by code', function(done) {
-      oidc._consumeClientCode()(req, res, function(err) {
-        expect(err).toBe(undefined)
-        expect(res.statusCode).toBe(200)
+      oidc._consumeClientCode(req).then(() => {
         expect(req.auth).not.toBe(undefined)
         done()
       })
     })
     it('fails when retrieving the same code twice', function(done) {
-      oidc._consumeClientCode()(req, res, function(err) {
-        expect(err).toBe(undefined)
-        oidc._consumeClientCode()(req, res, function(err) {
+      oidc._consumeClientCode(req).then(() => {
+        oidc._consumeClientCode(req).catch((err) => {
           expect(err).not.toBe(undefined)
-          debug('errxx', err)
           done()
         })
       })
@@ -238,9 +234,8 @@ describe('token', function() {
     })
     it('issues a usable access token for a refresh token', function(done) {
       console.log('client', client)
-      done()
-      /* TODO
       app.handle(req, res, function(err) {
+        /*
         expect(err).toBeFalsy()
         const data = res._getData()
         console.log('refresh_token, data', data)
@@ -248,9 +243,9 @@ describe('token', function() {
         expect(data.refresh_token).toBeTruthy()
         expect(data.expires_in).toBeTruthy()
         expect(data.token_type).toBeTruthy()
+        */
         done()
       })
-      */
     })
   })
 

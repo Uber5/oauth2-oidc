@@ -176,29 +176,34 @@ class OAuth2OIDC {
     }
   }
 
-  _consumeClientCode() {
-    return (req, res, next) => {
+  _consumeClientCode(req) {
+    console.log('_consumeClientCode, req=' + req)
+    const collections = req.state.collections
+    return Promise.resolve().then(() => {
       if (!req.body.code) {
-        return next({ status: 400, error: 'invalid_request', error_description: '"code" is required' })
+        throw { status: 400, error: 'invalid_request', error_description: '"code" is required' }
       }
-      const collections = req.state.collections
-      collections.auth.findOne({
+      return collections.auth.findOne({
         client: req.client.id,
         code: req.body.code,
         status: 'created'
-      }).then((auth) => {
-        debug('token endpoint, auth found', auth)
-        if (!auth) throw new Error(`auth for client ${ req.client.id } and code ${ req.body.code } not found.`)
-        req.auth = auth
-        auth.status = 'consumed'
-        return auth.save()
-      }).then(() => {
-        debug('auth saved', req.auth)
-        next()
-      }).catch((err) => {
-        return next(`no token found for code ${ req.body.code }: ${ err }`)
       })
-    }
+    }).then((auth) => {
+      debug('token endpoint, auth found', auth)
+      if (!auth) {
+        throw {
+          status: 400,
+          error: 'invalid_request',
+          error_description: `auth for client ${ req.client.id } and code ${ req.body.code } not found.`
+        }
+      }
+      req.auth = auth
+      auth.status = 'consumed'
+      return auth.save()
+    }).then(() => {
+      debug('auth saved', req.auth)
+      return Promise.resolve()
+    })
   }
 
   _expiresInSeconds(client, tokenCreatedAt) {
@@ -293,20 +298,31 @@ class OAuth2OIDC {
   }
 
   token() {
+    const self = this
     return [
+      (req, res, next) => { // validation
+        if (!req.body.grant_type) {
+          return next({ status: 400, error: 'invalid_request', error_description: 'grant_type required' })
+        }
+        if (req.body.grant_type == 'refresh_token') {
+          return next({ status: 500, error: 'not_implemented', error_description: '...' })
+        }
+        next()
+      },
       this._useState(),
       this._getClientOnTokenRequest(),
-      this._consumeClientCode(),
       (req, res, next) => {
-        const collections = req.state.collections
-        const auth = req.auth
-        collections.access.create({
-          token: generateCode(48),
-          type: 'bearer',
-          scope: auth.scope,
-          client: req.client,
-          user: auth.user,
-          auth: auth
+        self._consumeClientCode(req).then(() => {
+          const collections = req.state.collections
+          const auth = req.auth
+          return collections.access.create({
+            token: generateCode(48),
+            type: 'bearer',
+            scope: auth.scope,
+            client: req.client,
+            user: auth.user,
+            auth: auth
+          })
         }).then((access) => {
           res.send({
             access_token: access.token,
