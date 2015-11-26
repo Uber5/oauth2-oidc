@@ -35,3 +35,19 @@ Run `node-inspector`:
 ```
 
 ... (does not work at the moment... why?)
+
+# Testing
+
+The example provider can be run with a REPL:
+
+```
+WITH_REPL=1 node examples/provider.js
+```
+
+Within the REPL, the following will be in the context: `provider`, `ontology`, `server`
+
+This gives access to anything persisted like this:
+
+```
+ontology.collections.client.findOne({ id: 1 }).then((c) => { console.log('c', c) })
+```

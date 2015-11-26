@@ -1,3 +1,5 @@
+"use strict";
+
 const OAuth2OIDC = require('../'),
       TestProvider = require('../spec/helpers/testProvider'),
       state = require('./state'),
@@ -8,12 +10,18 @@ const port = process.env.PORT || 3001
 
 const specs = OAuth2OIDC.state.defaultSpecifications
 const adapter = sailsMemoryAdapter
+let replContext, provider, server
+
 state.getDefaultStateConfig(specs, adapter, function(err, ontology) {
   if (err) throw new Error(err);
-  const provider = new TestProvider({
+  provider = new TestProvider({
     state: ontology,
     login_url: '/login'
   })
+  if (replContext) {
+    replContext.provider = provider
+    replContext.ontology = ontology
+  }
 
   ontology.collections.user.create({
     sub: 'chris1@test.com',
@@ -34,8 +42,11 @@ state.getDefaultStateConfig(specs, adapter, function(err, ontology) {
     // TODO: refactor to create user in promise (before listening)
   }).then(function() {
     // ... and listen
-    const server = provider.app.listen(port, function() {
+    server = provider.app.listen(port, function() {
       console.log('provider listening on port ' + port)
+      if (replContext) {
+        replContext.server = server
+      }
     })
   }).catch(function(err) {
     console.log(err)
@@ -43,3 +54,8 @@ state.getDefaultStateConfig(specs, adapter, function(err, ontology) {
 
 })
 
+if (process.env.WITH_REPL) {
+  const repl = require('repl')
+  const s = repl.start('> ')
+  replContext = s.context
+}
