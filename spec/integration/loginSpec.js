@@ -28,8 +28,8 @@ describe('Visit client', function() {
           clientID: 'client1',
           clientSecret: 'secret123',
           site: `http://localhost:${ providerPort }`,
-          tokenPath: '/user/token',
-          authorizationPath: '/user/authorize'
+          tokenPath: '/token',
+          authorizationPath: '/authorize'
         }
 
         // make the client listen

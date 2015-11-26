@@ -35,9 +35,9 @@ class TestProvider {
       secret: crypto.randomBytes(12).toString('base64')
     }))
 
-    app.all('/user/authorize', oauth2oidc.auth())
+    app.all('/authorize', oauth2oidc.auth())
 
-    app.post('/user/token', oauth2oidc.token())
+    app.post('/token', oauth2oidc.token())
 
     app.get('/login', (req, res) => {
       res.render('login.html')
