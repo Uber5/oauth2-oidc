@@ -207,6 +207,7 @@ describe('token', function() {
   describe('refresh_token', function() {
     let config, user, client, access, app, req, res
     beforeEach(function(done) {
+      // get an access token first
       buildUsableAccessToken({}, (err, result) => {
         expect(err).toBeFalsy()
         config = result.config
@@ -215,12 +216,14 @@ describe('token', function() {
         client = result.client
         app = express()
         app.use(oidc.token())
+        // request a refresh token by using client credentials
         req = createRequest({
           headers: {
             authorization: getBasicClientAuthHeader(client)
           },
           body: {
             grant_type: 'refresh_token',
+            refresh_token: access.refresh_token
           }
         })
         req.state = config.state
@@ -233,18 +236,34 @@ describe('token', function() {
       config.state.connections.default._adapter.teardown(done)
     })
     it('issues a usable access token for a refresh token', function(done) {
-      console.log('client', client)
       app.handle(req, res, function(err) {
-        /*
         expect(err).toBeFalsy()
         const data = res._getData()
-        console.log('refresh_token, data', data)
         expect(data.access_token).toBeTruthy()
         expect(data.refresh_token).toBeTruthy()
         expect(data.expires_in).toBeTruthy()
         expect(data.token_type).toBeTruthy()
-        */
         done()
+      })
+    })
+    describe('for different client', function() {
+      let client2
+      beforeEach(function(done) {
+        Promise.resolve(buildClient()).then((client) => {
+          return config.state.collections.client.create(client)
+        }).then((savedClient) => {
+          client2 = savedClient
+          done()
+        })
+      })
+      it('rejects getting a refresh token', function(done) {
+        req.headers.authorization = getBasicClientAuthHeader(client2)
+        app.handle(req, res, function(err) {
+          expect(err).toBeTruthy()
+          expect(err.error).toEqual('invalid_request')
+          expect(err.error_description).toMatch(/not belong to client/)
+          done()
+        })
       })
     })
   })

@@ -89,7 +89,7 @@ global.getBasicClientAuthHeader = (client) => {
 }
 
 global.buildUsableAccessToken = (factoryArguments, callback) => {
-  let config, client, user, access
+  let config, client, auth, refresh, user, access
   factoryArguments = factoryArguments || {}
   buildTestConfig().then((c) => {
     config = c
@@ -105,7 +105,23 @@ global.buildUsableAccessToken = (factoryArguments, callback) => {
   }).then((savedUser) => {
     debug('savedUser', savedUser)
     user = savedUser
-    return buildAccess(Object.assign({}, { user: savedUser.id, client: client.id }, factoryArguments['access']))
+    return buildAuth(Object.assign({}, { client: client, user: user  }))
+  }).then((auth) => {
+    debug('buildUsableAccessToken, auth', auth)
+    return config.state.collections.auth.create(auth)
+  }).then((savedAuth) => {
+    auth = savedAuth
+    return buildRefresh(Object.assign({}, { scope: client.scope, auth: auth }, factoryArguments.refresh ))
+  }).then((refresh) => {
+    debug('buildUsableAccessToken, refresh', refresh)
+    return config.state.collections.refresh.create(refresh)
+  }).then((savedRefresh) => {
+    refresh = savedRefresh
+    return buildAccess(Object.assign({}, {
+      user: user.id,
+      client: client.id,
+      refresh_token: refresh.token
+    }, factoryArguments['access']))
   }).then((acc) => {
     debug('acc', acc)
     return config.state.collections.access.create(acc)
@@ -119,6 +135,7 @@ global.buildUsableAccessToken = (factoryArguments, callback) => {
       client: client
     })
   }).catch((err) => {
+    debug('buildUsableAccessToken, err', err.stack)
     expect(err).toBeFalsy()
   })
 }

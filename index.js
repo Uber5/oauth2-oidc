@@ -177,7 +177,6 @@ class OAuth2OIDC {
   }
 
   _consumeClientCode(req) {
-    console.log('_consumeClientCode, req=' + req)
     const collections = req.state.collections
     return Promise.resolve().then(() => {
       if (!req.body.code) {
@@ -300,6 +299,7 @@ class OAuth2OIDC {
   _createAccessToken(req) {
     const collections = req.state.collections
     const auth = req.auth
+    debug('_createAccessToken, auth', auth)
     return collections.access.create({
       token: generateCode(48),
       type: 'bearer',
@@ -310,15 +310,56 @@ class OAuth2OIDC {
     })
   }
 
+  _createRefreshToken(req) {
+    const collections = req.state.collections
+    const auth = req.auth
+    return collections.refresh.create({
+      token: generateCode(42),
+      scope: auth.scope,
+      auth: auth,
+      status: 'created'
+    })
+  }
+
+  _invalidateRefreshToken(req) {
+    const collections = req.state.collections
+    if (!req.body.refresh_token) {
+      return Promise.reject({ status: 400, error: 'invalid_request', error_description: 'no refresh token given' })
+    }
+    return Promise.resolve(req.body.refresh_token).then((id) => {
+      debug('refresh token id', id)
+      return collections.refresh.findOne({ token: id, status: 'created' })
+    }).then((token) => {
+      if (!token) {
+        return Promise.reject({
+          status: 400,
+          error: 'invalid_request',
+          error_description: 'refresh token not found or expired' })
+      }
+      req.token = token
+      return collections.auth.findOne({ id: token.auth })
+    }).then((auth) => {
+      req.auth = auth
+      const token = req.token
+      const client = req.client
+      debug('_invalidateRefreshToken, client and token and auth', req.client, token, auth)
+      if (auth.client != client.id) {
+        return Promise.reject({
+          status: 400,
+          error: 'invalid_request',
+          error_description: 'refresh token does not belong to client' })
+      }
+      token.status = 'consumed'
+      return token.save()
+    })
+  }
+
   token() {
     const self = this // TODO: unnecessary
     return [
       (req, res, next) => { // validation
         if (!req.body.grant_type) {
           return next({ status: 400, error: 'invalid_request', error_description: 'grant_type required' })
-        }
-        if (req.body.grant_type == 'refresh_token') {
-          return next({ status: 500, error: 'not_implemented', error_description: '...' })
         }
         next()
       },
@@ -329,17 +370,34 @@ class OAuth2OIDC {
           self._consumeClientCode(req).then(() => {
             return this._createAccessToken(req)
           }).then((access) => {
+            req.access = access
+            return this._createRefreshToken(req)
+          }).then((refresh) => {
+            const access = req.access
+            res.send({
+              access_token: access.token,
+              token_type: access.type,
+              expires_in: this._expiresInSeconds(req.client, access.createdAt),
+              refresh_token: refresh.token
+            })
+          }).catch((err) => {
+            next(err)
+          })
+        } else if (req.body.grant_type == 'refresh_token') {
+          this._invalidateRefreshToken(req).then(() => {
+            return this._createAccessToken(req)
+          }).then((access) => {
             res.send({
               access_token: access.token,
               token_type: access.type,
               expires_in: this._expiresInSeconds(req.client, access.createdAt),
               refresh_token: 'xxx', // TODO: dummy
             })
+            next()
           }).catch((err) => {
+            debug('err', err.stack)
             next(err)
           })
-        } else if (req.body.grant_type == 'refresh_token') {
-          // TODO
         }
       }
     ]

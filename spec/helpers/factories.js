@@ -19,6 +19,17 @@ exports.access = Factory.define('access')
     return Factory.build('user')
   })
 
+exports.auth = Factory.define('auth')
+  .attr('scope', [ 'userinfo', 'openid', 'profile' ])
+  .sequence('code', i => `code-${ i }`)
+  .attr('redirectUri', 'http://some.host.here')
+  .attr('responseType', 'code')
+  .attr('status', 'created')
+
+exports.refresh = Factory.define('refresh')
+  .sequence('token', (i) => `refresh-token-${ i }`)
+  .attr('status', 'created')
+
 exports.client = Factory.define('client')
   .sequence('key', (i) => `key${ i }`)
   .sequence('secret', (i) => `secret${ i }`)
