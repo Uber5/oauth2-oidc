@@ -1,7 +1,9 @@
 'use strict';
 
 const Waterline = require('waterline')
-exports.getDefaultStateConfig = function(specifications, waterlineAdapter, cb) {
+exports.getDefaultStateConfig = function(specifications, waterlineAdapter, connection, cb) {
+
+  connection = connection || { adapter: 'adapter1' }
 
   const waterline = new Waterline();
   for (var name in specifications) {
@@ -15,9 +17,7 @@ exports.getDefaultStateConfig = function(specifications, waterlineAdapter, cb) {
       adapter1: waterlineAdapter
     },
     connections: {
-      default: {
-        adapter: 'adapter1'
-      }
+      default: connection
     }
   }
   waterline.initialize(config, cb)

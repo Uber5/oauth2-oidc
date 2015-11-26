@@ -24,6 +24,7 @@ function getStateConfig(cb) {
   return state.getDefaultStateConfig(
       OAuth2OIDC.state.defaultSpecifications,
       sailsMemoryAdapter,
+      null,
       cb
   )
 }

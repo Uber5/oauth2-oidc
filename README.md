@@ -51,3 +51,12 @@ This gives access to anything persisted like this:
 ```
 ontology.collections.client.findOne({ id: 1 }).then((c) => { console.log('c', c) })
 ```
+
+## Persistence
+
+The example provider uses in-memory "persistence" by default. MongoDB can be
+used instead by providing a url in environment variable `MONGO_URL` like so:
+
+```
+MONGO_URL=mongodb://localhost/oauth2-oidc-provider node examples/provider.js
+```
