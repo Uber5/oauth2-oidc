@@ -71,7 +71,7 @@ class OAuth2OIDC {
         Promise.resolve(generateCode()).then((code) => {
           return req.state.collections.auth.create({
             client: req.client.id,
-            scope: query.scope.split(' '),
+            scope: query.scope.length > 0 ? query.scope.split(' ') : client.scope,
             user: req.session.user,
             code: code,
             redirectUri: query.redirect_uri,
@@ -144,6 +144,32 @@ class OAuth2OIDC {
         }
         debug('credentials', credentials)
         resolve(credentials)
+      }).catch((err) => {
+        debug('_getClientOnTokenRequest, no credentials in header')
+        return new Promise((resolve, reject) => {
+          if (!req.body.client_id) return reject(err);
+          debug('_getClientOnTokenRequest, trying with client_id', { body: req.body })
+          req.state.collections.client.findOne({ key: req.body.client_id })
+          .then((client) => {
+            debug('_getClientOnTokenRequest, client found', client)
+            if (!client) {
+              return reject({
+                status: 404,
+                error: 'invalid_request',
+                error_description: `client with id ${ req.body.client_id } not found.`
+              })
+            }
+            if (client.enforceAuthOnTokenRequest) {
+              return reject(err)
+              // return reject({ status: 401, error: 'invalid_request', error_description: 'missing authorization header (2)' })
+            } else {
+              return resolve({ client_id: client.key, secret: client.secret })
+            }
+          }).catch((err) => {
+            debug('_getClientOnTokenRequest, err loading client via client_id', err)
+            reject(err)
+          })
+        })
       }).then((credentials) => {
         return new Promise((resolve, reject) => {
           req.state.collections.client.findOne({ key: credentials.client_id }, (err, client) => {
@@ -169,7 +195,7 @@ class OAuth2OIDC {
         req.client = client
         next()
       }).catch((err) => {
-        debug('err', err)
+        debug('err', err.stack)
         // res.status(err.status || 500)
         next(err)
       })

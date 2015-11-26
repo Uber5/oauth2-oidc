@@ -2,10 +2,22 @@
 
 describe('token', function() {
 
-  let oidc
+  let oidc, config
 
-  beforeEach(function() {
+  beforeEach(function(done) {
     oidc = new OAuth2OIDC({ state: {}, login_url: '/login', })
+    buildTestConfig().then((c) => {
+      config = c
+      oidc.options.state = config.state
+      done()
+    })
+  })
+
+  afterEach(function(done) {
+    config.state.connections.default._adapter.teardown(function(err) {
+      expect(err).toBeFalsy()
+      done()
+    })
   })
 
   describe('extracting client credentials from header', function() {
@@ -27,6 +39,7 @@ describe('token', function() {
 
     it('verifies presence of authorization on token request', function(done) {
       const req = createRequest({})
+      req.state = config.state
       const res = createResponse()
       oidc._getClientOnTokenRequest()(req, res, function(err) {
         expect(err).toBeTruthy()
@@ -37,25 +50,48 @@ describe('token', function() {
     })
   })
 
+  describe('client that does not enforce authorization on token request', function() {
+    // See notes on https://tools.ietf.org/html/rfc6749#section-4.1.3
+    let req, res, client
+    beforeEach(function(done) {
+      Promise.resolve(buildClient({
+        enforceAuthOnTokenRequest: false
+      })).then((unsavedClient) => {
+        return config.state.collections.client.create(unsavedClient)
+      }).then((savedClient) => {
+        client = savedClient
+        req = createRequest({
+          body: {
+            client_id: client.key
+          }
+        })
+        req.state = config.state
+        res = createResponse()
+        done()
+      }).catch((err) => {
+        debug('err', err)
+      })
+    })
+    it('allows token request with client_id only', function(done) {
+      oidc._getClientOnTokenRequest()(req, res, function(err) {
+        expect(err).toBeFalsy()
+        done()
+      })
+    })
+  })
+
   describe('on invalid client credentials', function() {
-    let req, res, config, client
+    let req, res, client
     beforeEach(function(done) {
       req = createRequest({})
       res = createResponse()
-      buildTestConfig().then((c) => {
-        config = c
-        oidc.options.state = config.state
-        req.state = config.state
-        return buildClient()
-      }).then((unsavedClient) => {
+      req.state = config.state
+      Promise.resolve(buildClient()).then((unsavedClient) => {
         return config.state.collections.client.create(unsavedClient)
       }).then((savedClient) => {
         client = savedClient
         done()
       })
-    })
-    afterEach(function(done) {
-      config.state.connections.default._adapter.teardown(done)
     })
     it('rejects if there is no "authorization" header', function(done) {
       oidc._getClientOnTokenRequest()(req, res, function(err) { // TODO: duplicate spec
@@ -95,7 +131,7 @@ describe('token', function() {
   })
 
   describe('consuming client code', function() {
-    let config, req, res, code
+    let req, res, code
     beforeEach(function(done) {
       code = '12345'
       req = createRequest({
@@ -107,35 +143,21 @@ describe('token', function() {
         }
       })
       res = createResponse()
-      new Promise((resolve, reject) => {
-        testConfig((err, c) => {
-          if (err) return reject(err);
-          resolve(c)
-        })
-      }).then((c) => {
-        config = c
-        req.state = config.state
-        req.client = { id: nextId() }
-        return config.state.collections.auth.create({
-          client: req.client.id,
-          scope: [ 'bla' ],
-          user: 13,
-          code: code,
-          redirectUri: req.body.redirect_uri,
-          responseType: 'repTypeX',
-          status: 'created'
-        })
+      req.state = config.state
+      req.client = { id: nextId() }
+      config.state.collections.auth.create({
+        client: req.client.id,
+        scope: [ 'bla' ],
+        user: 13,
+        code: code,
+        redirectUri: req.body.redirect_uri,
+        responseType: 'repTypeX',
+        status: 'created'
       }).then((auth) => {
         done()
       }).catch((err) => {
         debug('err', err)
         expect(err).toBeFalsy()
-      })
-    })
-    afterEach(function(done) {
-      config.state.connections.default._adapter.teardown(function(err) {
-        expect(err).toBeFalsy()
-        done()
       })
     })
     it('retrieves the auth by code', function(done) {
@@ -155,9 +177,9 @@ describe('token', function() {
   })
 
   describe('expiring', function() {
-    let basetime, config, user, access, app, req, res
+    let basetime, user, access, app, req, res
     beforeEach(function(done) {
-      buildUsableAccessToken({}, (err, result) => {
+      buildUsableAccessToken({ config: config }, (err, result) => {
         expect(err).toBeFalsy()
         config = result.config
         user = result.user
@@ -173,9 +195,6 @@ describe('token', function() {
         oidc.options.state = config.state
         done()
       })
-    })
-    afterEach(function(done) {
-      config.state.connections.default._adapter.teardown(done)
     })
     it('allows querying userinfo with access token', function(done) {
       app.handle(req, res, function(err) {
@@ -205,10 +224,10 @@ describe('token', function() {
   })
 
   describe('refresh_token', function() {
-    let config, user, client, access, app, req, res
+    let user, client, access, app, req, res
     beforeEach(function(done) {
       // get an access token first
-      buildUsableAccessToken({}, (err, result) => {
+      buildUsableAccessToken({ config: config }, (err, result) => {
         expect(err).toBeFalsy()
         config = result.config
         user = result.user
@@ -231,9 +250,6 @@ describe('token', function() {
         res = createResponse()
         done()
       })
-    })
-    afterEach(function(done) {
-      config.state.connections.default._adapter.teardown(done)
     })
     it('issues a usable access token for a refresh token', function(done) {
       app.handle(req, res, function(err) {

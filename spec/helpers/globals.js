@@ -92,7 +92,7 @@ global.getBasicClientAuthHeader = (client) => {
 global.buildUsableAccessToken = (factoryArguments, callback) => {
   let config, client, auth, refresh, user, access
   factoryArguments = factoryArguments || {}
-  buildTestConfig().then((c) => {
+  Promise.resolve(factoryArguments.config || buildTestConfig()).then((c) => {
     config = c
     return buildClient(factoryArguments.client)
   }).then((client) => {
