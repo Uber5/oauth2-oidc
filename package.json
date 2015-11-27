@@ -1,12 +1,16 @@
 {
   "name": "oauth2-oidc",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Oauth2 and OpenIDConnect implementation, as express middleware",
   "main": "index.js",
   "scripts": {
     "test": "./node_modules/.bin/jasmine",
     "watch": "./node_modules/.bin/nodemon ./node_modules/.bin/jasmine",
     "coverage": "./node_modules/.bin/istanbul cover --include-all-sources ./node_modules/.bin/jasmine"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Uber5/oauth2-oidc.git"
   },
   "author": "Chris Oloff <chris@uber5.com> (https://uber5.com/)",
   "license": "ISC",
