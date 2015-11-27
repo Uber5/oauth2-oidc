@@ -5,8 +5,8 @@ const config = {
     clientID: 'testclient',
     clientSecret: 'very secret should it be',
     site: 'http://localhost:3001',
-    tokenPath: '/user/token',
-    authorizationPath: '/user/authorize',
+    tokenPath: '/token',
+    authorizationPath: '/authorize',
   },
   authorizationUrl: 'http://localhost:3001/auth'
 }

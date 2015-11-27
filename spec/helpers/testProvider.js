@@ -2,7 +2,6 @@
 
 const express = require('express'),
       OAuth2OIDC = require('../..'),
-      validate = require('jsonschema').validate,
       debug = require('debug')('oauth2-oidc'),
       bodyParser = require('body-parser'),
       session = require('express-session'),
