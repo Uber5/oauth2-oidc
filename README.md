@@ -1,3 +1,5 @@
+https://travis-ci.org/Uber5/oauth2-oidc.svg?branch=master
+
 # Development
 
 ## Setup
