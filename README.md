@@ -1,4 +1,4 @@
-https://travis-ci.org/Uber5/oauth2-oidc.svg?branch=master
+![Travis build status](https://travis-ci.org/Uber5/oauth2-oidc.svg?branch=master)
 
 # Development
 
