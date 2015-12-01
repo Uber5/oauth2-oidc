@@ -42,6 +42,37 @@ describe('auth', function() {
 
   });
 
+  describe('_verifyRedirectUri', function() {
+    it('succeeds for valid redirect_uri', function(done) {
+      const req = createRequest({
+        query: {
+          redirect_uri: 'https://my.host.com/callback?p1=123',
+        }
+      })
+      req.client = {
+        redirect_uris: [ 'https://my.host.com' ]
+      }
+      oidc._verifyRedirectUri()(req, createResponse(), function(err) {
+        expect(err).toBeFalsy()
+        done()
+      })
+    })
+    it('fails for invalid redirect_uri', function(done) {
+      const req = createRequest({
+        query: {
+          redirect_uri: 'https://ANOTHER.host.com/callback?p1=123',
+        }
+      })
+      req.client = {
+        redirect_uris: [ 'https://my.host.com' ]
+      }
+      oidc._verifyRedirectUri()(req, createResponse(), function(err) {
+        expect(err).toBeTruthy()
+        done()
+      })
+    })
+  })
+
   describe('_authorize', function() {
     it('fails with invalid response_type', function(done) {
       oidc._authorize()(createRequest({

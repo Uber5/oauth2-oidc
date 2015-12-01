@@ -44,7 +44,16 @@ class OAuth2OIDC {
 
   _verifyRedirectUri() {
     return function(req, res, next) {
-      next('huh? probably not needed')
+      const requested_redirect_uri = req.query.redirect_uri
+      const permitted = req.client.redirect_uris.reduce((memo, uri) => {
+        if (memo) return memo;
+        return requested_redirect_uri.match(`^${ uri }`)
+      }, false)
+      if (permitted) {
+        next()
+      } else {
+        next({ status: 400, error: 'invalid_request', error_description: 'redirect_uri not permitted' })
+      }
     }
   }
 
@@ -115,6 +124,7 @@ class OAuth2OIDC {
       this._validateAuth,
       this._useState(),
       this._getClient(),
+      this._verifyRedirectUri(),
       this._redirectToLoginUnlessLoggedIn(),
       this._authorize()
     ];
@@ -381,7 +391,6 @@ class OAuth2OIDC {
   }
 
   token() {
-    const self = this // TODO: unnecessary
     return [
       (req, res, next) => { // validation
         if (!req.body.grant_type) {
@@ -393,7 +402,7 @@ class OAuth2OIDC {
       this._getClientOnTokenRequest(),
       (req, res, next) => {
         if (req.body.grant_type == 'authorization_code') {
-          self._consumeClientCode(req).then(() => {
+          this._consumeClientCode(req).then(() => {
             return this._createAccessToken(req)
           }).then((access) => {
             req.access = access
