@@ -381,7 +381,6 @@ class OAuth2OIDC {
   }
 
   token() {
-    const self = this // TODO: unnecessary
     return [
       (req, res, next) => { // validation
         if (!req.body.grant_type) {
@@ -393,7 +392,7 @@ class OAuth2OIDC {
       this._getClientOnTokenRequest(),
       (req, res, next) => {
         if (req.body.grant_type == 'authorization_code') {
-          self._consumeClientCode(req).then(() => {
+          this._consumeClientCode(req).then(() => {
             return this._createAccessToken(req)
           }).then((access) => {
             req.access = access
