@@ -94,7 +94,7 @@ class OAuth2OIDC {
         }).then((auth) => {
           debug('_authorize, auth created', auth)
           return res.redirect(req.query.redirect_uri
-            + '?code=' + encodeURIComponent(auth.code)
+            + uriQuerySeparator(req.query.redirect_uri) + 'code=' + encodeURIComponent(auth.code)
             + '&state=' + req.query.state)
         }).catch((err) => {
           debug('unable to authorize', err)
@@ -237,7 +237,7 @@ class OAuth2OIDC {
         throw {
           status: 400,
           error: 'invalid_request',
-          error_description: `auth for client ${ req.client.id } and code ${ req.body.code } not found.`
+          error_description: `auth for client ${ req.client.key } and code ${ req.body.code } not found.`
         }
       }
       req.auth = auth
@@ -338,8 +338,7 @@ class OAuth2OIDC {
         const auth = req.auth
         debug('magicopen, redirect', auth)
         return res.redirect(auth.redirectUri
-          + '?code=' + encodeURIComponent(auth.code)
-          + '&state=' + 'magic') // TODO: what about state? would have to come from client, and client would have to check??
+          + uriQuerySeparator(auth.redirectUri) + 'code=' + encodeURIComponent(auth.code))
       }
     ]
   }
@@ -433,16 +432,13 @@ class OAuth2OIDC {
           })
         } else if (req.body.grant_type == 'refresh_token') {
           this._invalidateRefreshToken(req).then(() => {
-            return this._createRefreshToken(req);
-          }).then((refresh) => {
-            req.refresh = refresh
             return this._createAccessToken(req)
           }).then((access) => {
             res.send({
               access_token: access.token,
               token_type: access.type,
               expires_in: this._expiresInSeconds(req.client, access.createdAt),
-              refresh_token: req.refresh.token
+              refresh_token: 'xxx', // TODO: dummy
             })
             next()
           }).catch((err) => {
