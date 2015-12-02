@@ -429,13 +429,16 @@ class OAuth2OIDC {
           })
         } else if (req.body.grant_type == 'refresh_token') {
           this._invalidateRefreshToken(req).then(() => {
+            return this._createRefreshToken(req);
+          }).then((refresh) => {
+            req.refresh = refresh
             return this._createAccessToken(req)
           }).then((access) => {
             res.send({
               access_token: access.token,
               token_type: access.type,
               expires_in: this._expiresInSeconds(req.client, access.createdAt),
-              refresh_token: 'xxx', // TODO: dummy
+              refresh_token: req.refresh.token
             })
             next()
           }).catch((err) => {
