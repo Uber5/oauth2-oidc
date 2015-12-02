@@ -83,7 +83,7 @@ describe('auth', function() {
           redirect_uri: 'y'
         }
       }), createResponse(), function(err) {
-        expect(err).toMatch(/Invalid or unsupported response_type/)
+        expect(err.error_description).toMatch(/Invalid or unsupported response_type/)
         done()
       })
     })

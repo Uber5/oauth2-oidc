@@ -217,6 +217,7 @@ describe('token', function() {
       it('fails with http code 401', function(done) {
         app.handle(req, res, function(err) {
           expect(err).toBeTruthy()
+          expect(err.status).toEqual(401)
           done()
         })
       })

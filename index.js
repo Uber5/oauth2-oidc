@@ -104,7 +104,11 @@ class OAuth2OIDC {
       debug('_getClient, req.query', query)
       const response_type = query.response_type
       if (!byResponseType[response_type]) {
-        return next(`Invalid or unsupported response_type ${ response_type }`)
+        return next({
+          status: 400,
+          error: 'invalid_request',
+          error_description: `Invalid or unsupported response_type ${ response_type }`
+        })
       } else {
         return byResponseType[response_type](req, res, next)
       }
@@ -263,7 +267,11 @@ class OAuth2OIDC {
         debug('magickey, body', req.body)
         debug('magickey, sub', req.param('sub'))
         if (!sub || !redirect_uri || !scope) {
-          return next({ error: 'missing_parameters', error_description: 'sub, redirect_uri and scope are required'})
+          return next({
+            status: 400,
+            error: 'missing_parameters',
+            error_description: 'sub, redirect_uri and scope are required'
+          })
         }
         Promise.resolve(req.state.collections.user.findOne({ sub: sub })).then((foundUser) => {
           debug('foundUser', foundUser)
@@ -303,12 +311,12 @@ class OAuth2OIDC {
         const key = req.query.key
         debug('magicopen, key', key)
         if (!key) {
-          return next({ error: 'missing_parameters', error_description: 'key is required'})
+          return next({ status: 400, error: 'missing_parameters', error_description: 'key is required'})
         }
         Promise.resolve(req.state.collections.auth.findOne({ magicKey: key }))
         .then((auth) => {
           if (!auth) {
-            return next({ error: 'key_invalid', error_description: 'key not found or expired' })
+            return next({ status: 401, error: 'key_invalid', error_description: 'key not found or expired' })
           }
           req.auth = auth
           next()
@@ -318,7 +326,7 @@ class OAuth2OIDC {
         const auth = req.auth
         const client = req.auth.client // TODO: may have to query
         if (this._expiresInSeconds(client, auth.createdAt) < 0) {
-          return next({ error: 'key_invalid', error_description: 'key not found or expired' })
+          return next({ status: 401, error: 'key_invalid', error_description: 'key not found or expired' })
         }
         next()
       },
@@ -368,9 +376,10 @@ class OAuth2OIDC {
     }).then((token) => {
       if (!token) {
         return Promise.reject({
-          status: 400,
+          status: 401,
           error: 'invalid_request',
-          error_description: 'refresh token not found or expired' })
+          error_description: 'refresh token not found or expired'
+        })
       }
       req.token = token
       return collections.auth.findOne({ id: token.auth })
@@ -496,7 +505,11 @@ class OAuth2OIDC {
     const requiredScopes = Array.prototype.slice.call(arguments)
     return (req, res, next) => {
       if (!req.client || !req.client.scope) {
-        return next('no client scope present')
+        return next({
+          status: 400,
+          error: 'invalid_request',
+          error_description: 'no client scope present'
+        })
       }
       this._hasScopes(req.client.scope, requiredScopes, (err) => {
         return next(err)
@@ -508,7 +521,7 @@ class OAuth2OIDC {
     const requiredScopes = Array.prototype.slice.call(arguments)
     return (req, res, next) => {
       if (!req.token || !req.token.scope) {
-        return next('no token scope present')
+        return next({ status: 400, error_description: 'no token scope present' })
       }
       this._hasScopes(req.token.scope, requiredScopes, (err) => {
         next(err)
@@ -521,7 +534,7 @@ class OAuth2OIDC {
       if (this._expiresInSeconds(req.client, req.token.createdAt) > 0) {
         return next()
       } else {
-        next({ error: 'expired', error_description: 'token provided has expired.' })
+        next({ status: 401, error: 'expired', error_description: 'token provided has expired.' })
       }
     }
   }
