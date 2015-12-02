@@ -13,6 +13,10 @@ function generateCode(length) {
   return crypto.randomBytes(length).toString(process.env.CODE_ENCODING || 'hex')
 }
 
+function uriQuerySeparator(uri) {
+  return uri.match(/\?/) ? '&' : '?'
+}
+
 class OAuth2OIDC {
 
   constructor(options) {
