@@ -6,7 +6,11 @@ const schemas = require('./lib/schemas'),
 
 function generateCode(length) {
   length = length || 12
-  return crypto.randomBytes(length).toString('base64')
+  // TODO: We have (at least one) client who does not properly uri-encode
+  // codes, therefore we switch to 'hex' encoded by default. In order to use,
+  // as a provider, a more efficient encoding (e.g. the previously used
+  // 'base64'), environment variable CODE_ENCODING can be defined.
+  return crypto.randomBytes(length).toString(process.env.CODE_ENCODING || 'hex')
 }
 
 class OAuth2OIDC {
