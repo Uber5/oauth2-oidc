@@ -99,7 +99,7 @@ describe('userinfo', function() {
         const data = res._getData()
         debug('data', data)
         expect(data.sub).toEqual(user.sub)
-        expect(data.name).toEqual('dummy')
+        expect(data.name).toEqual('(no name set)')
         done()
       })
     })
