@@ -176,8 +176,58 @@ describe('token', function() {
     })
   })
 
+  describe('logging out', function() {
+    let user, access, app, req, res
+    beforeEach(function(done) {
+      buildUsableAccessToken({ config: config }, (err, result) => {
+        expect(err).toBeFalsy()
+        config = result.config
+        user = result.user
+        access = result.access
+        app = express()
+        app.use(oidc.userinfo())
+        req = createRequest({
+          headers: {
+            authorization: `Bearer ${ access.token }`
+          }
+        })
+        res = createResponse()
+        oidc.options.state = config.state
+        done()
+      })
+    })
+    describe('after logging out', function() {
+      beforeEach(function(done) {
+        express().use(oidc.logout()).handle(createRequest({
+          headers: {
+            authorization: `Bearer ${ access.token }`
+          }
+        }), createResponse(), (err) => {
+          expect(err).toBeFalsy()
+          done()
+        })
+      })
+      it('denies userinfo', function(done) {
+        app.handle(req, res, function(err) {
+          expect(err).toBeTruthy()
+          expect(err.status).toEqual(401)
+          // expect(err.error_description).toMatch(/invalid or expired/) // TODO
+          done()
+        })
+      })
+      it('denies refreshing', function(done) {
+        done() // TODO
+      })
+    })
+    describe('before logging out', function() {
+      it('allows querying user info', function(done) {
+        done() // TODO: duplicate to scenario 'expiring'
+      })
+    })
+  })
+
   describe('expiring', function() {
-    let basetime, user, access, app, req, res
+    let user, access, app, req, res
     beforeEach(function(done) {
       buildUsableAccessToken({ config: config }, (err, result) => {
         expect(err).toBeFalsy()

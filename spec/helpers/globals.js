@@ -18,6 +18,16 @@ jasmine.getEnv().addReporter(new reporters.TerminalReporter({
   showStack: true
 }))
 
+/** weirdly, the below exception handler influences how errors are reported by
+ * Jasmine: Without this error handler, exceptions in `beforeEach` functions
+ * are *not* reported. */
+process.on('uncaughtException', (err) => {
+  console.error('[specs] Uncaught error', err)
+  if (err.stack) {
+    console.error('[specs] Stack Trace', err.stack)
+  }
+})
+
 global.OAuth2OIDC = OAuth2OIDC
 
 function getStateConfig(cb) {

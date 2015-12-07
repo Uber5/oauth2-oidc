@@ -564,6 +564,31 @@ class OAuth2OIDC {
     next()
   }
 
+  _removeAccessAndAuth(req, res, next) {
+
+    debug('_removeAccessAndAuth, user', req.user)
+    const collections = req.state.collections
+    const user = req.user
+
+    Promise.resolve().then(() => {
+      return collections.auth.destroy({ user: user.id })
+    }).then((r) => {
+      debug(`_removeAccessAndAuth, destroyed auths for user ${ user.id }`, r)
+      return collections.access.destroy({ user: user.id })
+    }).then((r) => {
+      debug(`_removeAccessAndAuth, destroyed access for user ${ user.id }`, r)
+      next()
+    }).catch((err) => {
+      debug(`_removeAccessAndAuth, unable to remove tokens for ${ user.id }`, err)
+      return next({
+        status: 500,
+        error: 'internal',
+        error_description: `unable to destroy tokens for user ${ user.id }`
+      });
+    })
+
+  }
+
   userinfo() {
     return [
       this._useState(),
@@ -574,6 +599,14 @@ class OAuth2OIDC {
     ]
   }
 
+  logout() {
+    return [
+      this._useState(),
+      this._getAccessTokenAndUserOnRequest(),
+      this._ensureNotExpired(),
+      this._removeAccessAndAuth
+    ]
+  }
 }
 
 module.exports = OAuth2OIDC;
