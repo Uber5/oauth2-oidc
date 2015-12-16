@@ -68,6 +68,34 @@ describe('magic link', function() {
         done()
       })
     })
+    describe('with magickey', function() {
+      let key, openRequest
+      beforeEach(function(done) {
+        const keyResponse = createResponse()
+        express().use(oidc.magickey()).handle(keyRequest, keyResponse, (err) => {
+          expect(err).toBeFalsy()
+          const data = keyResponse._getData()
+          key = data.key
+          openRequest = createRequest({
+            query: {
+              key: key
+            }
+          })
+          done()
+        })
+      })
+      it('allows using the magickey', function(done) {
+        const response = createResponse()
+        express().use(oidc.magicopen()).handle(openRequest, response, (err) => {
+          expect(err).toBeFalsy()
+          expect(response.statusCode).toBe(302)
+          done()
+        })
+      })
+      it('does not allow the key twice', function(done) {
+        done() // TODO
+      })
+    })
   })
 
 })
