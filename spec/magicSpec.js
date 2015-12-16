@@ -93,7 +93,25 @@ describe('magic link', function() {
         })
       })
       it('does not allow the key twice', function(done) {
-        done() // TODO
+        express().use(oidc.magicopen()).handle(openRequest, createResponse(), (err) => {
+          expect(err).toBeFalsy()
+          const secondResponse = createResponse()
+          console.log('key consumed, key', key)
+          express().use(oidc.magicopen()).handle(createRequest({
+            query: {
+              key: key
+            }
+          }), secondResponse, (err2) => {
+            console.log('not twice, err2', err2, arguments)
+            if (!err2) {
+              const e = new Error(err2);
+              console.error(e.stack)
+            }
+            // console.log('not twice, data', secondResponse._getData())
+            expect(err2).toBeTruthy()
+            done()
+          })
+        })
       })
     })
   })

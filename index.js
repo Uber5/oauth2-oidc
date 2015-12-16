@@ -323,13 +323,20 @@ class OAuth2OIDC {
         if (!key) {
           return next({ status: 400, error: 'missing_parameters', error_description: 'key is required'})
         }
-        Promise.resolve(req.state.collections.auth.findOne({ magicKey: key }))
+        Promise.resolve(req.state.collections.auth.findOne({ magicKey: key, status: 'created' }))
         .then((auth) => {
           if (!auth) {
-            return next({ status: 401, error: 'key_invalid', error_description: 'key not found or expired' })
+            throw { status: 401, error: 'key_invalid', error_description: 'key not found or expired' }
           }
           req.auth = auth
+          auth.status = 'consumed'
+          return auth.save()
+        }).then(() => {
+          debug('magicopen, saved', arguments)
           next()
+        }).catch((err) => {
+          debug('magicopen, err', err)
+          return next(err)
         })
       },
       (req, res, next) => { // check expiry
@@ -345,7 +352,10 @@ class OAuth2OIDC {
           req.session && (req.session.user = user) // keep user in session (if there is a session)
           debug('magicopen, user', user)
           next()
-        }).catch(next)
+        }).catch((err) => {
+          debug('magicopen, resolving user, err', err)
+          next(err)
+        })
       },
       (req, res, next) => { // respond
         const auth = req.auth
