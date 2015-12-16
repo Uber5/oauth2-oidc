@@ -303,7 +303,9 @@ class OAuth2OIDC {
             magicKey: generateCode(48)
           })
         }).then((auth) => {
+          debug('magickey, auth', auth)
           res.status(201).send({ key: auth.magicKey })
+          next()
         }).catch((err) => {
           debug('magickey error', err)
           res.status(err.status || 500).send(err)
