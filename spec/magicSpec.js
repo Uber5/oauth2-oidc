@@ -44,9 +44,9 @@ describe('magic link', function() {
   })
 
   describe('client with "magiclink" scope', function() {
-    let request, response
+    let keyRequest
     beforeEach(function(done) {
-      request = createRequest({
+      keyRequest = createRequest({
         headers: {
           authorization: getBasicClientAuthHeader(client)
         },
@@ -56,16 +56,15 @@ describe('magic link', function() {
           scope: 'userinfo,openid'
         }
       })
-      response = createResponse()
       client.scope = [ 'magiclink' ]
       client.save().then(done)
     })
     it('allows creation of magiclink', function(done) {
-      express().use(oidc.magickey()).handle(request, response, (err) => {
-        console.log('err', err)
+      const response = createResponse()
+      express().use(oidc.magickey()).handle(keyRequest, response, (err) => {
         expect(err).toBeFalsy()
         const data = response._getData()
-        console.log('response', data)
+        expect(data.key).not.toBeFalsy()
         done()
       })
     })
