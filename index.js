@@ -342,16 +342,17 @@ class OAuth2OIDC {
       },
       (req, res, next) => {
         Promise.resolve(req.state.collections.user.findOne({ id: req.auth.user })).then((user) => {
-          req.session.user = user // keep user in session
+          req.session && (req.session.user = user) // keep user in session (if there is a session)
           debug('magicopen, user', user)
           next()
-        })
+        }).catch(next)
       },
       (req, res, next) => { // respond
         const auth = req.auth
         debug('magicopen, redirect', auth)
-        return res.redirect(auth.redirectUri
+        res.redirect(auth.redirectUri
           + uriQuerySeparator(auth.redirectUri) + 'code=' + encodeURIComponent(auth.code))
+        next()
       }
     ]
   }
