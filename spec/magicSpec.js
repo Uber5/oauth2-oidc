@@ -102,13 +102,8 @@ describe('magic link', function() {
               key: key
             }
           }), secondResponse, (err2) => {
-            console.log('not twice, err2', err2, arguments)
-            if (!err2) {
-              const e = new Error(err2);
-              console.error(e.stack)
-            }
-            // console.log('not twice, data', secondResponse._getData())
             expect(err2).toBeTruthy()
+            expect(err2.error_description).toMatch(/expired/)
             done()
           })
         })
