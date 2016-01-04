@@ -458,11 +458,15 @@ class OAuth2OIDC {
           this._invalidateRefreshToken(req).then(() => {
             return this._createAccessToken(req)
           }).then((access) => {
+            req.access = access
+            return this._createRefreshToken(req)
+          }).then((refresh) => {
+            const access = req.access
             res.send({
               access_token: access.token,
               token_type: access.type,
               expires_in: this._expiresInSeconds(req.client, access.createdAt),
-              refresh_token: 'xxx', // TODO: dummy
+              refresh_token: refresh.token
             })
             next()
           }).catch((err) => {
