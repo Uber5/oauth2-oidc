@@ -404,7 +404,7 @@ class OAuth2OIDC {
       if (!token) {
         return Promise.reject({
           status: 401,
-          error: 'invalid_request',
+          error: 'invalid_token',
           error_description: 'refresh token not found or expired'
         })
       }
@@ -496,7 +496,7 @@ class OAuth2OIDC {
       .then((token) => {
         if (!token) {
           debug('access token not found', token)
-          throw ({ status: 401, message: 'access token not found or expired' });
+          throw ({ status: 401, error: 'invalid_token', message: 'access token not found or expired' });
         }
         req.token = token
         debug('token found', token)
