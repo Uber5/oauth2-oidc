@@ -115,7 +115,7 @@ class OAuth2OIDC {
         return next({
           status: 400,
           error: 'invalid_request',
-          error_description: `Invalid or unsupported response_type ${ response_type }`
+          error_description: `Invalid or unsupported response_type "${ response_type }"`
         })
       } else {
         return byResponseType[response_type](req, res, next)
