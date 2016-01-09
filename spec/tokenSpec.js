@@ -54,11 +54,9 @@ describe('token', function() {
     // See notes on https://tools.ietf.org/html/rfc6749#section-4.1.3
     let req, res, client
     beforeEach(function(done) {
-      Promise.resolve(buildClient({
+      Promise.resolve(buildAndSaveClient(config.state.collections, {
         enforceAuthOnTokenRequest: false
-      })).then((unsavedClient) => {
-        return config.state.collections.client.create(unsavedClient)
-      }).then((savedClient) => {
+      })).then((savedClient) => {
         client = savedClient
         req = createRequest({
           body: {
@@ -86,9 +84,7 @@ describe('token', function() {
       req = createRequest({})
       res = createResponse()
       req.state = config.state
-      Promise.resolve(buildClient()).then((unsavedClient) => {
-        return config.state.collections.client.create(unsavedClient)
-      }).then((savedClient) => {
+      Promise.resolve(buildAndSaveClient(config.state.collections)).then((savedClient) => {
         client = savedClient
         done()
       })
@@ -316,10 +312,8 @@ describe('token', function() {
     describe('for different client', function() {
       let client2
       beforeEach(function(done) {
-        Promise.resolve(buildClient()).then((client) => {
-          return config.state.collections.client.create(client)
-        }).then((savedClient) => {
-          client2 = savedClient
+        Promise.resolve(buildAndSaveClient(config.state.collections)).then((client) => {
+          client2 = client
           done()
         })
       })

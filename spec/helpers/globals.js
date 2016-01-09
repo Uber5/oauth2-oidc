@@ -93,6 +93,12 @@ for (var f in factories) {
       return result
     }
   })(f)
+  global['buildAndSave' + name] = ((factoryName) => {
+    return (store, options) => {
+      const result = factories.Factory.build(factoryName, options || {})
+      return store[factoryName].create(result)
+    }
+  })(f)
 }
 
 global.getBasicClientAuthHeader = (client) => {

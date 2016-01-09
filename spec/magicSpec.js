@@ -9,12 +9,9 @@ describe('magic link', function() {
     buildTestConfig().then((c) => {
       config = c
       oidc.options.state = config.state
-      Promise.resolve(buildClient({
-      })).then((unsavedClient) => {
-        return config.state.collections.client.create(unsavedClient)
-      }).then((savedClient) => {
+      Promise.resolve(buildAndSaveClient(config.state.collections, {})).then((savedClient) => {
         client = savedClient
-        return config.state.collections.user.create(buildUser())
+        return buildAndSaveUser(config.state.collections)
       }).then((savedUser) => {
         user = savedUser
         done()
