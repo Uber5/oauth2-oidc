@@ -96,6 +96,10 @@ for (var f in factories) {
   global['buildAndSave' + name] = ((factoryName) => {
     return (store, options) => {
       const result = factories.Factory.build(factoryName, options || {})
+      if (!store[factoryName]) {
+        console.log('factory ' + factoryName + ' not found', factories)
+        throw new Error(`factory with name ${ factoryName } not found`);
+      }
       return store[factoryName].create(result)
     }
   })(f)

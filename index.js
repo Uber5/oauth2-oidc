@@ -80,21 +80,26 @@ class OAuth2OIDC {
   _authorize() {
     const options = this.options
 
+    function createAuth(req, scopes, code, redirect_uri, response_type) {
+      return req.state.collections.auth.create({
+        client: req.client.id,
+        scope: scopes,
+        user: req.session.user,
+        code: code,
+        redirectUri: redirect_uri,
+        responseType: response_type,
+        status: 'created'
+      })
+    }
+
     const byResponseType = {
       code: function(req, res, next) {
         const client = req.client
         const query = req.query
         // TODO: some checks missing (token type, scopes, ...)
         Promise.resolve(generateCode()).then((code) => {
-          return req.state.collections.auth.create({
-            client: req.client.id,
-            scope: query.scope.length > 0 ? query.scope.split(' ') : client.scope,
-            user: req.session.user,
-            code: code,
-            redirectUri: query.redirect_uri,
-            responseType: query.response_type,
-            status: 'created'
-          })
+          const scopes = query.scope.length > 0 ? query.scope.split(' ') : client.scope
+          return createAuth(req, scopes, code, query.redirect_uri, query.response_type)
         }).then((auth) => {
           debug('_authorize, auth created', auth)
           return res.redirect(req.query.redirect_uri
@@ -102,6 +107,39 @@ class OAuth2OIDC {
             + '&state=' + req.query.state)
         }).catch((err) => {
           debug('unable to authorize', err)
+          next(err)
+        })
+      },
+      token: (req, res, next) => {
+        if (!req.client.implicitFlow) {
+          return next({
+            status: 401,
+            error: 'unauthorized_client',
+            error_description: 'The client is not authorized to request an access token using this method'
+          })
+        }
+        const query = req.query
+        const scopes = query.scope.length > 0 ? query.scope.split(' ') : client.scope
+        Promise.resolve(scopes).then((scopes) => {
+          return createAuth(req, scopes, 'implicit', query.redirect_uri, query.response_type)
+        }).then((auth) => {
+          req.auth = auth
+          return this._createAccessToken(req)
+        }).then((access) => {
+          req.access = access
+          return this._createRefreshToken(req)
+        }).then((refresh) => {
+          const access = req.access
+          const data = {
+            access_token: access.token,
+            token_type: access.type,
+            expires_in: this._expiresInSeconds(req.client, access.createdAt),
+            refresh_token: refresh.token
+          }
+          if (req.query.state) data.state = req.query.state;
+          res.send(data)
+          next()
+        }).catch((err) => {
           next(err)
         })
       }
