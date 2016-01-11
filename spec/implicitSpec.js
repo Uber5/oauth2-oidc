@@ -1,5 +1,7 @@
 'use strict';
 
+const qs = require('url-parse').qs
+
 describe('implicit flow', function() {
   let oidc, config
 
@@ -48,7 +50,6 @@ describe('implicit flow', function() {
         app.use(oidc._useState())
         app.use(oidc._authorize())
         Promise.resolve(buildAndSaveUser(config.state.collections, { password: '123', passConfirm: '123' })).then((user) => {
-          console.log('implicit... user', user)
           req.session.user = user
           done()
         }).catch((err) => {
@@ -60,9 +61,11 @@ describe('implicit flow', function() {
       it('provides an access_token', function(done) {
         app.handle(req, res, (err) => {
           expect(err).toBeFalsy()
-          const data = res._getData()
+          expect(res.statusCode).toEqual(302)
+          const url = res._getRedirectUrl()
+          expect(url).toMatch(client.redirect_uris[0])
+          const data = qs.parse(url)
           expect(data.access_token).toBeTruthy()
-          expect(data.refresh_token).toBeTruthy()
           expect(data.expires_in).toBeTruthy()
           expect(data.token_type).toBeTruthy()
           expect(data.state).toEqual(state)

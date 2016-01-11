@@ -136,8 +136,14 @@ class OAuth2OIDC {
             expires_in: this._expiresInSeconds(req.client, access.createdAt),
             refresh_token: refresh.token
           }
-          if (req.query.state) data.state = req.query.state;
-          res.send(data)
+          const baseUrl = req.query.redirect_uri
+          let redirectUrl = req.query.redirect_uri + uriQuerySeparator(baseUrl)
+                      + 'access_token=' + encodeURIComponent(data.access_token)
+                      + '&token_type=' + data.token_type
+                      + '&expires_in=' + data.expires_in
+                      + '&scope=' + scopes
+          if (req.query.state) redirectUrl += ('&state=' + req.query.state)
+          res.redirect(redirectUrl)
           next()
         }).catch((err) => {
           next(err)
