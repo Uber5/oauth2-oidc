@@ -64,7 +64,7 @@ describe('implicit flow', function() {
           expect(res.statusCode).toEqual(302)
           const url = res._getRedirectUrl()
           expect(url).toMatch(client.redirect_uris[0])
-          const data = qs.parse(url)
+          const data = qs.parse(url.replace('#', '?')) // TODO: assuming no query parameters (okay here), but generally not okay
           expect(data.access_token).toBeTruthy()
           expect(data.expires_in).toBeTruthy()
           expect(data.token_type).toBeTruthy()

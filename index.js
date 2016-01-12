@@ -17,6 +17,10 @@ function uriQuerySeparator(uri) {
   return uri.match(/\?/) ? '&' : '?'
 }
 
+function uriFragmentSeparator(uri) {
+  return uri.match(/\#/) ? '&' : '#'
+}
+
 class OAuth2OIDC {
 
   constructor(options) {
@@ -137,11 +141,11 @@ class OAuth2OIDC {
             refresh_token: refresh.token
           }
           const baseUrl = req.query.redirect_uri
-          let redirectUrl = req.query.redirect_uri + uriQuerySeparator(baseUrl)
+          let redirectUrl = req.query.redirect_uri + uriFragmentSeparator(baseUrl)
                       + 'access_token=' + encodeURIComponent(data.access_token)
                       + '&token_type=' + data.token_type
                       + '&expires_in=' + data.expires_in
-                      + '&scope=' + scopes
+                      + '&scope=' + encodeURIComponent(scopes)
           if (req.query.state) redirectUrl += ('&state=' + req.query.state)
           res.redirect(redirectUrl)
           next()
