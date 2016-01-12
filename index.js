@@ -459,10 +459,10 @@ class OAuth2OIDC {
       const token = req.token
       const client = req.client
       debug('_invalidateRefreshToken, client and token and auth', req.client, token, auth)
-      if (auth.client != client.id) {
+      if (!auth || auth.client != client.id) {
         return Promise.reject({
-          status: 400,
-          error: 'invalid_request',
+          status: 401,
+          error: 'invalid_token',
           error_description: 'refresh token does not belong to client' })
       }
       token.status = 'consumed'
@@ -514,7 +514,7 @@ class OAuth2OIDC {
             })
             next()
           }).catch((err) => {
-            debug('err', err.stack)
+            debug('err', err, err.stack)
             next(err)
           })
         }

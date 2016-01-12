@@ -321,7 +321,7 @@ describe('token', function() {
         req.headers.authorization = getBasicClientAuthHeader(client2)
         app.handle(req, res, function(err) {
           expect(err).toBeTruthy()
-          expect(err.error).toEqual('invalid_request')
+          expect(err.error).toEqual('invalid_token')
           expect(err.error_description).toMatch(/not belong to client/)
           done()
         })
