@@ -609,7 +609,7 @@ class OAuth2OIDC {
       if (this._expiresInSeconds(req.client, req.token.createdAt) > 0) {
         return next()
       } else {
-        next({ status: 401, error: 'expired', error_description: 'token provided has expired.' })
+        next({ status: 401, error: 'invalid_token', error_description: 'token provided has expired.' })
       }
     }
   }
