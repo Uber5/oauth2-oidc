@@ -619,12 +619,16 @@ class OAuth2OIDC {
   }
 
   _sendUserInfo(req, res, next) {
-    const data = {
-      sub: req.user.sub,
-      email: req.user.sub, // TODO: needs to be adjustable / customizable
-      name: '(no name set)', // TODO: add more properties of the user to the response
-      preferred_username: '(no preferred name set)'
+    const options = (this ? this.options : {})
+    const f = options.userInfoFn || function(user) {
+      return {
+        sub: req.user.sub,
+        email: req.user.sub, // TODO: needs to be adjustable / customizable
+        name: '(no name set)', // TODO: add more properties of the user to the response
+        preferred_username: '(no preferred name set)'
+      }
     }
+    const data = f(req.user)
     res.send(data)
     next()
   }

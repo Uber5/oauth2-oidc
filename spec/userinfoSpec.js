@@ -104,5 +104,49 @@ describe('userinfo', function() {
       })
     })
   })
+})
 
+describe('userinfo with custom user properties', function() {
+
+  let oidc
+
+  beforeEach(function() {
+    oidc = new OAuth2OIDC({ state: {}, login_url: '/login', userInfoFn: function(user) {
+      return {
+        sub: user.sub,
+        name: 'Joe Soap',
+        email: 'joe@test.com'
+      }
+    }})
+  })
+
+  describe('having an access token', function() {
+    let config, user, access
+    beforeEach(function(done) {
+      buildUsableAccessToken({}, (err, result) => {
+        if (err) throw new Error(err);
+        config = result.config
+        user = result.user
+        access = result.access
+        done()
+      })
+    })
+    afterEach(function(done) {
+      config.state.connections.default._adapter.teardown(done)
+    })
+    it('retrieves userinfo with custom properties', function(done) {
+      const req = createRequest()
+      req.user = user
+      const res = createResponse()
+      oidc._sendUserInfo(req, res, function(err) {
+        expect(err).toBe(undefined)
+        const data = res._getData()
+        debug('data', data)
+        expect(data.sub).toEqual(user.sub)
+        expect(data.name).toEqual('Joe Soap')
+        expect(data.email).toEqual('joe@test.com')
+        done()
+      })
+    })
+  })
 })
