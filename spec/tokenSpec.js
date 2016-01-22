@@ -172,6 +172,52 @@ describe('token', function() {
     })
   })
 
+  describe('via password', function() {
+    describe('when password access is allowed', function() {
+      const password = 'TopSecret'
+      let client, user, app
+      beforeEach(function(done) {
+        Promise.resolve(buildClient({
+          passwordFlow: true
+        })).then((unsavedClient) => {
+          return config.state.collections.client.create(unsavedClient)
+        }).then((newClient) => {
+          if (!newClient) throw new Error('no client created');
+          client = newClient
+          return buildUser({
+            password: password,
+            passConfirm: password
+          })
+        }).then((unsavedUser) => {
+          return config.state.collections.user.create(unsavedUser)
+        }).then((newUser) => {
+          user = newUser
+          app = express()
+          app.use(oidc.token())
+          done()
+        })
+      })
+      it('provides an access token', function(done) {
+        console.log('provides and access token, client_id', client.key)
+        const req = createRequest({
+          body: {
+            grant_type: 'password',
+            client_id: client.key,
+            client_secret: client.secret,
+            username: user.sub,
+            password: password
+          }
+        })
+        const res = createResponse()
+        app.handle(req, res, (err) => {
+          console.log('err, res._getData()', err, res._getData())
+          expect(err).toBeFalsy()
+          done()
+        })
+      })
+    })
+  })
+
   describe('logging out', function() {
     let user, access, app, req, res
     beforeEach(function(done) {

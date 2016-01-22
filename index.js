@@ -217,6 +217,7 @@ class OAuth2OIDC {
       }).catch((err) => {
         debug('_getClientOnTokenRequest, no credentials in header')
         return new Promise((resolve, reject) => {
+          debug('_getClientOnTokenRequest, body', req.body)
           if (!req.body.client_id) return reject(err);
           debug('_getClientOnTokenRequest, trying with client_id', { body: req.body })
           req.state.collections.client.findOne({ key: req.body.client_id })
@@ -228,6 +229,13 @@ class OAuth2OIDC {
                 error: 'invalid_request',
                 error_description: `client with id ${ req.body.client_id } not found.`
               })
+            }
+            if (client.passwordFlow) {
+              if (client.secret == req.body.client_secret) {
+                return resolve({ client_id: client.key, secret: client.secret })
+              } else {
+                return reject({ status: 401, error: 'invalid_request', error_description: 'invalid client credentials'})
+              }
             }
             if (client.enforceAuthOnTokenRequest) {
               return reject(err)
@@ -474,6 +482,17 @@ class OAuth2OIDC {
     })
   }
 
+  _userViaUsernameAndPassword(collections, body) {
+    return collections.user.findOne({ sub: body.username }).then((user) => {
+      if (user && user.samePassword(body.password)) {
+        user = user
+        return Promise.resolve(user)
+      } else {
+        throw ({ status: 401, error: 'invalid_grant', error_description: 'invalid user credentials' })
+      }
+    })
+  }
+
   token() {
     return [
       (req, res, next) => { // validation
@@ -485,6 +504,7 @@ class OAuth2OIDC {
       this._useState(),
       this._getClientOnTokenRequest(),
       (req, res, next) => {
+        debug('token, got client', req.client, req.body)
         if (req.body.grant_type == 'authorization_code') {
           this._consumeClientCode(req).then(() => {
             return this._createAccessToken(req)
@@ -519,6 +539,37 @@ class OAuth2OIDC {
             next()
           }).catch((err) => {
             debug('err', err, err.stack)
+            next(err)
+          })
+        } else if (req.body.grant_type == 'password') {
+          debug('token via password', req.client, req.body)
+          this._userViaUsernameAndPassword(req.state.collections, req.body).then((user) => { // TODO: duplication from here
+            req.user = user
+            return req.state.collections.auth.create({
+              client: req.client.id,
+              scope: req.client.scope,
+              user: req.user,
+              code: 'password',
+              redirectUri: req.client.redirect_uris[0],
+              responseType: 'bearer',
+              status: 'created'
+            })
+          }).then((auth) => {
+            req.auth = auth
+            return this._createAccessToken(req)
+          }).then((access) => {
+            req.access = access
+            return this._createRefreshToken(req)
+          }).then((refresh) => {
+            const access = req.access
+            res.send({
+              access_token: access.token,
+              token_type: access.type,
+              expires_in: this._expiresInSeconds(req.client, access.createdAt),
+              refresh_token: refresh.token
+            })
+            next()
+          }).catch((err) => {
             next(err)
           })
         }
