@@ -173,39 +173,53 @@ describe('token', function() {
   })
 
   describe('via password', function() {
-    describe('when password access is allowed', function() {
-      const password = 'TopSecret'
-      let client, user, app, req, res
+    const password = 'TopSecret'
+    let client, user, app, req, res
+    function buildClientAndUser(isPasswordFlowAllowed, done) {
+      Promise.resolve(buildClient({
+        passwordFlow: isPasswordFlowAllowed
+      })).then((unsavedClient) => {
+        return config.state.collections.client.create(unsavedClient)
+      }).then((newClient) => {
+        if (!newClient) throw new Error('no client created');
+        client = newClient
+        return buildUser({
+          password: password,
+          passConfirm: password
+        })
+      }).then((unsavedUser) => {
+        return config.state.collections.user.create(unsavedUser)
+      }).then((newUser) => {
+        user = newUser
+        app = express()
+        app.use(oidc.token())
+        req = createRequest({
+          body: {
+            grant_type: 'password',
+            client_id: client.key,
+            client_secret: client.secret,
+            username: user.sub,
+            password: password
+          }
+        })
+        res = createResponse()
+        done()
+      })
+    }
+    describe('when password access is not allowed', function() {
       beforeEach(function(done) {
-        Promise.resolve(buildClient({
-          passwordFlow: true
-        })).then((unsavedClient) => {
-          return config.state.collections.client.create(unsavedClient)
-        }).then((newClient) => {
-          if (!newClient) throw new Error('no client created');
-          client = newClient
-          return buildUser({
-            password: password,
-            passConfirm: password
-          })
-        }).then((unsavedUser) => {
-          return config.state.collections.user.create(unsavedUser)
-        }).then((newUser) => {
-          user = newUser
-          app = express()
-          app.use(oidc.token())
-          req = createRequest({
-            body: {
-              grant_type: 'password',
-              client_id: client.key,
-              client_secret: client.secret,
-              username: user.sub,
-              password: password
-            }
-          })
-          res = createResponse()
+        buildClientAndUser(false, done)
+      })
+      it('fails', function(done) {
+        app.handle(req, res, (err) => {
+          expect(err).toBeTruthy()
           done()
         })
+      })
+    })
+    describe('when password access is allowed', function() {
+      beforeEach(function(done) {
+        buildClientAndUser(true, done)
       })
       it('provides an access token', function(done) {
         app.handle(req, res, (err) => {
