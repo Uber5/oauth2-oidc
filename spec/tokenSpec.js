@@ -175,7 +175,7 @@ describe('token', function() {
   describe('via password', function() {
     describe('when password access is allowed', function() {
       const password = 'TopSecret'
-      let client, user, app
+      let client, user, app, req, res
       beforeEach(function(done) {
         Promise.resolve(buildClient({
           passwordFlow: true
@@ -194,24 +194,37 @@ describe('token', function() {
           user = newUser
           app = express()
           app.use(oidc.token())
+          req = createRequest({
+            body: {
+              grant_type: 'password',
+              client_id: client.key,
+              client_secret: client.secret,
+              username: user.sub,
+              password: password
+            }
+          })
+          res = createResponse()
           done()
         })
       })
       it('provides an access token', function(done) {
-        console.log('provides and access token, client_id', client.key)
-        const req = createRequest({
-          body: {
-            grant_type: 'password',
-            client_id: client.key,
-            client_secret: client.secret,
-            username: user.sub,
-            password: password
-          }
-        })
-        const res = createResponse()
         app.handle(req, res, (err) => {
           console.log('err, res._getData()', err, res._getData())
           expect(err).toBeFalsy()
+          done()
+        })
+      })
+      it('fails on invalid client credentials', function(done) {
+        req.body.client_secret = 'invalid'
+        app.handle(req, res, (err) => {
+          expect(err).toBeTruthy()
+          done()
+        })
+      })
+      it('fails on invalid user credentials', function(done) {
+        req.body.password = 'invalid'
+        app.handle(req, res, (err) => {
+          expect(err).toBeTruthy()
           done()
         })
       })
