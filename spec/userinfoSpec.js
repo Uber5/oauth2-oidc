@@ -94,7 +94,7 @@ describe('userinfo', function() {
       const req = createRequest()
       req.user = user
       const res = createResponse()
-      oidc._sendUserInfo(req, res, function(err) {
+      oidc._sendUserInfo()(req, res, function(err) {
         expect(err).toBe(undefined)
         const data = res._getData()
         debug('data', data)
@@ -138,7 +138,7 @@ describe('userinfo with custom user properties', function() {
       const req = createRequest()
       req.user = user
       const res = createResponse()
-      oidc._sendUserInfo(req, res, function(err) {
+      oidc._sendUserInfo()(req, res, function(err) {
         expect(err).toBe(undefined)
         const data = res._getData()
         debug('data', data)
