@@ -81,6 +81,11 @@ class OAuth2OIDC {
     }
   }
 
+  _getScopesFromQueryOrClient(req) {
+    const query = req.query
+    return query.scope.length > 0 ? query.scope.split(' ') : req.client.scope
+  }
+
   _authorize() {
     const options = this.options
 
@@ -96,13 +101,15 @@ class OAuth2OIDC {
       })
     }
 
+    const getScopes = this._getScopesFromQueryOrClient.bind(this)
+
     const byResponseType = {
       code: function(req, res, next) {
         const client = req.client
         const query = req.query
         // TODO: some checks missing (token type, scopes, ...)
         Promise.resolve(generateCode()).then((code) => {
-          const scopes = query.scope.length > 0 ? query.scope.split(' ') : client.scope
+          const scopes = getScopes(req)
           return createAuth(req, scopes, code, query.redirect_uri, query.response_type)
         }).then((auth) => {
           debug('_authorize, auth created', auth)
@@ -123,7 +130,7 @@ class OAuth2OIDC {
           })
         }
         const query = req.query
-        const scopes = query.scope.length > 0 ? query.scope.split(' ') : client.scope
+        const scopes = getScopes(req)
         Promise.resolve(scopes).then((scopes) => {
           return createAuth(req, scopes, 'implicit', query.redirect_uri, query.response_type)
         }).then((auth) => {
