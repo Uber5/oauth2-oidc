@@ -153,6 +153,9 @@ class OAuth2OIDC {
                       + '&token_type=' + data.token_type
                       + '&expires_in=' + data.expires_in
                       + '&scope=' + encodeURIComponent(scopes)
+          if (req.client.refreshTokenOnImplicitFlow) {
+            redirectUrl += '&refresh_token=' + encodeURIComponent(data.refresh_token)
+          }
           if (req.query.state) redirectUrl += ('&state=' + req.query.state)
           res.redirect(redirectUrl)
           next()
