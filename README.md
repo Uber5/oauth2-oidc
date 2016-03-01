@@ -62,3 +62,7 @@ used instead by providing a url in environment variable `MONGO_URL` like so:
 ```
 MONGO_URL=mongodb://localhost/oauth2-oidc-provider node examples/provider.js
 ```
+
+# License
+
+Licensed under the [MIT License](./LICENSE.txt).
