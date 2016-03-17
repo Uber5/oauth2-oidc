@@ -320,7 +320,7 @@ class OAuth2OIDC {
   }
 
   _expiresInSeconds(client, tokenCreatedAt) {
-    const maxLifeInSeconds = 3600 // TODO: configurable in client?
+    const maxLifeInSeconds = client.tokenTtlInSeconds || 3600 // default to 1 hour
     const lifeInSeconds = (new Date().getTime() - tokenCreatedAt.getTime()) / 1000
     const result = Math.floor(maxLifeInSeconds - lifeInSeconds)
     debug('_expiresInSeconds', new Date().getTime(), tokenCreatedAt.getTime(), lifeInSeconds, result)
@@ -671,11 +671,19 @@ class OAuth2OIDC {
 
   _ensureNotExpired() {
     return (req, res, next) => {
-      if (this._expiresInSeconds(req.client, req.token.createdAt) > 0) {
-        return next()
-      } else {
-        next({ status: 401, error: 'invalid_token', error_description: 'token provided has expired.' })
-      }
+      new Promise((resolve, reject) => {
+        const collections = req.state.collections
+        if (req.client) return resolve(req.client);
+        collections.client.findOne({ id: req.token.client }).then((client) => {
+          resolve(client)
+        })
+      }).then((client) => {
+        if (this._expiresInSeconds(client, req.token.createdAt) > 0) {
+          return next()
+        } else {
+          next({ status: 401, error: 'invalid_token', error_description: 'token provided has expired.' })
+        }
+      });
     }
   }
 

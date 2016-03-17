@@ -317,6 +317,7 @@ describe('token', function() {
     })
     it('allows querying userinfo with access token', function(done) {
       app.handle(req, res, function(err) {
+        if (err) console.log('err 320', err.stack);
         expect(err).toBeFalsy()
         done()
       })
