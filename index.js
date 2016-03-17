@@ -240,7 +240,9 @@ class OAuth2OIDC {
                 error_description: `client with id ${ req.body.client_id } not found.`
               })
             }
-            if (client.passwordFlow && req.body.grant_type == 'password') { // TODO: spec first (password flow with client without passwordFlow==true
+            if ((client.passwordFlow && req.body.grant_type == 'password') ||
+                req.body.grant_type == 'refresh_token') { // TODO: spec first
+              // (password flow with client without passwordFlow==true) Also, allow client auth on refresh_token request
               if (client.secret == req.body.client_secret) {
                 return resolve({ client_id: client.key, secret: client.secret })
               } else {
