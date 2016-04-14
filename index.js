@@ -322,6 +322,10 @@ class OAuth2OIDC {
   }
 
   _expiresInSeconds(client, tokenCreatedAt) {
+    if (client._idleTimeout) {
+      debugger
+      throw new Error('oops, probably invalid client');
+    }
     const maxLifeInSeconds = client.tokenTtlInSeconds || 3600 // default to 1 hour
     const lifeInSeconds = (new Date().getTime() - tokenCreatedAt.getTime()) / 1000
     const result = Math.floor(maxLifeInSeconds - lifeInSeconds)
@@ -675,7 +679,8 @@ class OAuth2OIDC {
     return (req, res, next) => {
       new Promise((resolve, reject) => {
         const collections = req.state.collections
-        if (req.client) return resolve(req.client);
+        // TODO: in certain contexts the client seems to be *not* our client?
+        // if (req.client) return resolve(req.client);
         collections.client.findOne({ id: req.token.client }).then((client) => {
           resolve(client)
         })
