@@ -679,7 +679,8 @@ class OAuth2OIDC {
     return (req, res, next) => {
       new Promise((resolve, reject) => {
         const collections = req.state.collections
-        // TODO: in certain contexts the client seems to be *not* our client?
+        // TODO: in certain contexts the client seems to be *not* our client, so we rather
+        // always find it.
         // if (req.client) return resolve(req.client);
         collections.client.findOne({ id: req.token.client }).then((client) => {
           resolve(client)
