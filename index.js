@@ -83,7 +83,7 @@ class OAuth2OIDC {
 
   _getScopesFromQueryOrClient(req) {
     const query = req.query
-    return query.scope.length > 0 ? query.scope.split(' ') : req.client.scope
+    return query.scope && query.scope.length > 0 ? query.scope.split(' ') : req.client.scope
   }
 
   _authorize() {

@@ -15,6 +15,9 @@ describe('getting scopes', function() {
     { desc: 'uses client scope, as query scope empty',
       req: { query: { scope: '' }, client: { scope: [ '123' ] } },
       expected: [ '123' ] },
+    { desc: 'uses client scope, as query scope not present',
+      req: { query: {}, client: { scope: [ '123' ] } },
+      expected: [ '123' ] },
   ]
   scenario.forEach((scenario) => {
     let req
