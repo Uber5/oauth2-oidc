@@ -323,8 +323,7 @@ class OAuth2OIDC {
 
   _expiresInSeconds(client, tokenCreatedAt) {
     if (client._idleTimeout) {
-      debugger
-      throw new Error('oops, probably invalid client');
+      throw new Error('we probably have an invalid client');
     }
     const maxLifeInSeconds = client.tokenTtlInSeconds || 3600 // default to 1 hour
     const lifeInSeconds = (new Date().getTime() - tokenCreatedAt.getTime()) / 1000
