@@ -75,7 +75,7 @@ describe('token', function() {
         })
       })
     })
-    describe('when permitted', function(done) {
+    describe('when permitted', function() {
       beforeEach(function(done) {
         client.allowClientCredentialsInBody = true
         client.save().then(savedClient => done())
