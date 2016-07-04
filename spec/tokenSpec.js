@@ -50,6 +50,45 @@ describe('token', function() {
     })
   })
 
+  describe('credentials in body', function() {
+    let req, res, client
+    beforeEach(function(done) {
+      Promise.resolve(buildAndSaveClient(config.state.collections, {})).then((savedClient) => {
+        client = savedClient
+        req = createRequest({
+          body: {
+            client_id: client.key,
+            client_secret: client.secret
+          }
+        })
+        req.state = config.state
+        res = createResponse()
+        done()
+      })
+    })
+    describe('by default', function() {
+      it('results in 401', function(done) {
+        oidc._getClientOnTokenRequest()(req, res, function(err) {
+          expect(err).toBeTruthy()
+          expect(err.error_description).toMatch(/missing authorization header/)
+          done()
+        })
+      })
+    })
+    describe('when permitted', function(done) {
+      beforeEach(function(done) {
+        client.allowClientCredentialsInBody = true
+        client.save().then(savedClient => done())
+      })
+      it('is okay', function(done) {
+        oidc._getClientOnTokenRequest()(req, res, function(err) {
+          expect(err).toBeFalsy()
+          done()
+        })
+      })
+    })
+  })
+
   describe('client that does not enforce authorization on token request', function() {
     // See notes on https://tools.ietf.org/html/rfc6749#section-4.1.3
     let req, res, client

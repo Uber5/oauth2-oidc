@@ -241,7 +241,8 @@ class OAuth2OIDC {
               })
             }
             if ((client.passwordFlow && req.body.grant_type == 'password') ||
-                req.body.grant_type == 'refresh_token') { // TODO: spec first
+                req.body.grant_type == 'refresh_token' ||
+                client.allowClientCredentialsInBody) {
               // (password flow with client without passwordFlow==true) Also, allow client auth on refresh_token request
               if (client.secret == req.body.client_secret) {
                 return resolve({ client_id: client.key, secret: client.secret })
