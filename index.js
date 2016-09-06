@@ -758,6 +758,5 @@ class OAuth2OIDC {
 }
 
 module.exports = OAuth2OIDC;
-module.exports.state = {
-  defaultSpecifications: require('./lib/specifications')
-}
+
+module.exports.getDefaultSpecifications = () => require('./lib/specifications');
