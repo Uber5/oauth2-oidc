@@ -1,6 +1,6 @@
 {
   "name": "oauth2-oidc",
-  "version": "0.1.29",
+  "version": "0.1.30",
   "description": "Oauth2 and OpenIDConnect implementation, as express middleware",
   "main": "index.js",
   "scripts": {
