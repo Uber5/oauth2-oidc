@@ -32,7 +32,7 @@ global.OAuth2OIDC = OAuth2OIDC
 
 function getStateConfig(cb) {
   return state.getDefaultStateConfig(
-      OAuth2OIDC.state.defaultSpecifications,
+      OAuth2OIDC.getDefaultSpecifications(),
       sailsMemoryAdapter,
       null,
       cb

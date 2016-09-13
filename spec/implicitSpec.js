@@ -1,6 +1,6 @@
 'use strict';
 
-const qs = require('url-parse').qs
+const urlParse = require('url-parse')
 
 describe('implicit flow', function() {
   let oidc, config
@@ -64,7 +64,8 @@ describe('implicit flow', function() {
           expect(res.statusCode).toEqual(302)
           const url = res._getRedirectUrl()
           expect(url).toMatch(client.redirect_uris[0])
-          const data = qs.parse(url.replace('#', '?')) // TODO: assuming no query parameters (okay here), but generally not okay
+          const queryString = urlParse(url).hash.replace('#', '')
+          const data = urlParse.qs.parse(queryString)
           expect(data.access_token).toBeTruthy()
           expect(data.expires_in).toBeTruthy()
           expect(data.token_type).toBeTruthy()
