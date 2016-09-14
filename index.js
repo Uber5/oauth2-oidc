@@ -770,4 +770,4 @@ class OAuth2OIDC {
 
 module.exports = OAuth2OIDC;
 
-module.exports.getDefaultSpecifications = () => require('./lib/specifications');
+module.exports.getStateBackedByMongoDB = (url) => require('./lib/persistence/mongo')(url);
