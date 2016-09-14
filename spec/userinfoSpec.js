@@ -1,25 +1,26 @@
 "use strict";
 
 describe('userinfo', function() {
-  let oidc
+  let oidc, config
 
-  beforeEach(function() {
-    oidc = new OAuth2OIDC({ state: {}, login_url: '/login', })
+  beforeEach(function(done) {
+    getState().then(state => {
+      oidc = new OAuth2OIDC({ state, login_url: '/login', })
+      config = oidc.options
+      done()
+    })
   })
 
   describe('having an access token', function() {
-    let config, user, access
+    let user, access
     beforeEach(function(done) {
-      buildUsableAccessToken({}, (err, result) => {
+      buildUsableAccessToken({ config }, (err, result) => {
         if (err) throw new Error(err);
-        config = result.config
+        // config = result.config
         user = result.user
         access = result.access
         done()
       })
-    })
-    afterEach(function(done) {
-      config.state.connections.default._adapter.teardown(done)
     })
     it('retrieves access token and user info', function(done) {
       const req = createRequest({
@@ -43,9 +44,9 @@ describe('userinfo', function() {
               }
             }),
             res = createResponse()
-      oidc.options.state = config.state
+      // oidc.options.state = config.state
       access.scope = [ 'changed', 'email' ]
-      access.save().then(() => {
+      config.state.collections.access.save(access).then(() => {
         app.use(oidc.userinfo())
         app.handle(req, res, function(err) {
           expect(err).not.toBeFalsy()
@@ -108,31 +109,32 @@ describe('userinfo', function() {
 
 describe('userinfo with custom user properties', function() {
 
-  let oidc
+  let oidc, config
 
-  beforeEach(function() {
-    oidc = new OAuth2OIDC({ state: {}, login_url: '/login', userInfoFn: function(user) {
-      return {
-        sub: user.sub,
-        name: 'Joe Soap',
-        email: 'joe@test.com'
-      }
-    }})
+  beforeEach(function(done) {
+    getState().then(state => {
+      oidc = new OAuth2OIDC({ state, login_url: '/login', userInfoFn: function(user) {
+        return {
+          sub: user.sub,
+          name: 'Joe Soap',
+          email: 'joe@test.com'
+        }
+      }})
+      config = oidc.options
+      done()
+    })
   })
 
   describe('having an access token', function() {
-    let config, user, access
+    let user, access
     beforeEach(function(done) {
-      buildUsableAccessToken({}, (err, result) => {
+      buildUsableAccessToken({ config }, (err, result) => {
         if (err) throw new Error(err);
-        config = result.config
+        // config = result.config
         user = result.user
         access = result.access
         done()
       })
-    })
-    afterEach(function(done) {
-      config.state.connections.default._adapter.teardown(done)
     })
     it('retrieves userinfo with custom properties', function(done) {
       const req = createRequest()

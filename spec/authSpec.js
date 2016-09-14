@@ -2,19 +2,16 @@
 
 describe('auth', function() {
 
-  let oidcConfig, oidc
+  let oidc
 
   beforeEach(function(done) {
-    testConfig(function(err, config) {
-      oidcConfig = config
-      oidc = new OAuth2OIDC(config);
+    getState()
+    .then(state => new OAuth2OIDC({ state: state, login_url: '/login' }))
+    .then(o => {
+      oidc = o
       done()
     })
-  })
-
-  afterEach(function(done) {
-    // console.log('oidcConfig.state', oidcConfig.state)
-    oidcConfig.state.connections.default._adapter.teardown(done)
+    .catch(err => { console.log('auth, beforeEach, error', err); done(err) })
   })
 
   describe('_validateAuth', function() {

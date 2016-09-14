@@ -57,7 +57,7 @@ class TestProvider {
           return res.render('login.html', { flash: `user ${ username } not found.` })
         }
         if (userHasPassword(user, req.body.password)) {
-          req.session.user = user.id
+          req.session.user = user._id
           return res.redirect(req.session.return_url || '/')
         } else {
           return res.render('login.html', { flash: 'Password incorrect.' })

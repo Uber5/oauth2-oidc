@@ -1,21 +1,17 @@
 "use strict";
 
+const debug = require('debug')('oauth2-oidc')
+
 describe('token', function() {
 
   let oidc, config
 
-  beforeEach(function(done) {
-    oidc = new OAuth2OIDC({ state: {}, login_url: '/login', })
-    buildTestConfig().then((c) => {
-      config = c
-      oidc.options.state = config.state
-      done()
-    })
-  })
+  const state = () => oidc.options.state
 
-  afterEach(function(done) {
-    config.state.connections.default._adapter.teardown(function(err) {
-      expect(err).toBeFalsy()
+  beforeEach(function(done) {
+    getState().then(state => {
+      oidc = new OAuth2OIDC({ state, login_url: '/login_url' })
+      config = oidc.options
       done()
     })
   })
@@ -39,7 +35,7 @@ describe('token', function() {
 
     it('verifies presence of authorization on token request', function(done) {
       const req = createRequest({})
-      req.state = config.state
+      req.state = state()
       const res = createResponse()
       oidc._getClientOnTokenRequest()(req, res, function(err) {
         expect(err).toBeTruthy()
@@ -53,7 +49,7 @@ describe('token', function() {
   describe('credentials in body', function() {
     let req, res, client
     beforeEach(function(done) {
-      Promise.resolve(buildAndSaveClient(config.state.collections, {})).then((savedClient) => {
+      Promise.resolve(buildAndSaveClient(state().collections, {})).then((savedClient) => {
         client = savedClient
         req = createRequest({
           body: {
@@ -61,7 +57,7 @@ describe('token', function() {
             client_secret: client.secret
           }
         })
-        req.state = config.state
+        req.state = state()
         res = createResponse()
         done()
       })
@@ -69,6 +65,7 @@ describe('token', function() {
     describe('by default', function() {
       it('results in 401', function(done) {
         oidc._getClientOnTokenRequest()(req, res, function(err) {
+          debug('should result in 401', err)
           expect(err).toBeTruthy()
           expect(err.error_description).toMatch(/missing authorization header/)
           done()
@@ -78,7 +75,7 @@ describe('token', function() {
     describe('when permitted', function() {
       beforeEach(function(done) {
         client.allowClientCredentialsInBody = true
-        client.save().then(savedClient => done())
+        state().collections.client.save(client).then(() => done())
       })
       it('is okay', function(done) {
         oidc._getClientOnTokenRequest()(req, res, function(err) {
@@ -93,7 +90,7 @@ describe('token', function() {
     // See notes on https://tools.ietf.org/html/rfc6749#section-4.1.3
     let req, res, client
     beforeEach(function(done) {
-      Promise.resolve(buildAndSaveClient(config.state.collections, {
+      Promise.resolve(buildAndSaveClient(state().collections, {
         enforceAuthOnTokenRequest: false
       })).then((savedClient) => {
         client = savedClient
@@ -102,7 +99,7 @@ describe('token', function() {
             client_id: client.key
           }
         })
-        req.state = config.state
+        req.state = state()
         res = createResponse()
         done()
       }).catch((err) => {
@@ -122,8 +119,8 @@ describe('token', function() {
     beforeEach(function(done) {
       req = createRequest({})
       res = createResponse()
-      req.state = config.state
-      Promise.resolve(buildAndSaveClient(config.state.collections)).then((savedClient) => {
+      req.state = state()
+      Promise.resolve(buildAndSaveClient(state().collections)).then((savedClient) => {
         client = savedClient
         done()
       })
@@ -178,12 +175,12 @@ describe('token', function() {
         }
       })
       res = createResponse()
-      req.state = config.state
-      req.client = { id: nextId() }
-      config.state.collections.auth.create({
-        client: req.client.id,
+      req.state = state()
+      req.client = { _id: nextId() }
+      state().collections.auth.create({
+        clientId: req.client._id,
         scope: [ 'bla' ],
-        user: 13,
+        userId: 13,
         code: code,
         redirectUri: req.body.redirect_uri,
         responseType: 'repTypeX',
@@ -218,7 +215,8 @@ describe('token', function() {
       Promise.resolve(buildClient({
         passwordFlow: isPasswordFlowAllowed
       })).then((unsavedClient) => {
-        return config.state.collections.client.create(unsavedClient)
+        debug('password flow, unsavedClient', unsavedClient)
+        return state().collections.client.create(unsavedClient)
       }).then((newClient) => {
         if (!newClient) throw new Error('no client created');
         client = newClient
@@ -227,8 +225,9 @@ describe('token', function() {
           passConfirm: password
         })
       }).then((unsavedUser) => {
-        return config.state.collections.user.create(unsavedUser)
+        return state().collections.user.validateAndCreate(unsavedUser)
       }).then((newUser) => {
+        debug('password flow, newUser', newUser)
         user = newUser
         app = express()
         app.use(oidc.token())
@@ -262,7 +261,7 @@ describe('token', function() {
       })
       it('provides an access token', function(done) {
         app.handle(req, res, (err) => {
-          console.log('err, res._getData()', err, res._getData())
+          debug('err, res._getData()', err, res._getData())
           expect(err).toBeFalsy()
           done()
         })
@@ -289,7 +288,7 @@ describe('token', function() {
     beforeEach(function(done) {
       buildUsableAccessToken({ config: config }, (err, result) => {
         expect(err).toBeFalsy()
-        config = result.config
+        //config = result.config
         user = result.user
         access = result.access
         app = express()
@@ -300,7 +299,7 @@ describe('token', function() {
           }
         })
         res = createResponse()
-        oidc.options.state = config.state
+        //oidc.options.state = state()
         done()
       })
     })
@@ -339,7 +338,7 @@ describe('token', function() {
     beforeEach(function(done) {
       buildUsableAccessToken({ config: config }, (err, result) => {
         expect(err).toBeFalsy()
-        config = result.config
+        //config = result.config
         user = result.user
         access = result.access
         app = express()
@@ -350,13 +349,13 @@ describe('token', function() {
           }
         })
         res = createResponse()
-        oidc.options.state = config.state
+        //oidc.options.state = state()
         done()
       })
     })
     it('allows querying userinfo with access token', function(done) {
       app.handle(req, res, function(err) {
-        if (err) console.log('err 320', err.stack);
+        if (err) debug('err 320', err.stack);
         expect(err).toBeFalsy()
         done()
       })
@@ -371,7 +370,7 @@ describe('token', function() {
           access.createdAt,
           -1 * (60 * 60 * 1000 + 1) /* subtract 1 hour plus one ms */
         )
-        access.save().then(done)
+        state().collections.access.save(access).then(done).catch(err => done(err))
       })
       it('fails with http code 401', function(done) {
         app.handle(req, res, function(err) {
@@ -389,7 +388,7 @@ describe('token', function() {
       // get an access token first
       buildUsableAccessToken({ config: config }, (err, result) => {
         expect(err).toBeFalsy()
-        config = result.config
+        //config = result.config
         user = result.user
         access = result.access
         client = result.client
@@ -405,8 +404,8 @@ describe('token', function() {
             refresh_token: access.refresh_token
           }
         })
-        req.state = config.state
-        oidc.options.state = config.state
+        req.state = state()
+        //oidc.options.state = state()
         res = createResponse()
         done()
       })
@@ -425,7 +424,7 @@ describe('token', function() {
     describe('for different client', function() {
       let client2
       beforeEach(function(done) {
-        Promise.resolve(buildAndSaveClient(config.state.collections)).then((client) => {
+        Promise.resolve(buildAndSaveClient(state().collections)).then((client) => {
           client2 = client
           done()
         })

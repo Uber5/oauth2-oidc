@@ -1,9 +1,7 @@
 "use strict";
 
 const OAuth2OIDC = require('../..'),
-      Waterline = require('waterline'),
-      sailsMemoryAdapter = require('sails-memory'),
-      state = require('../../examples/state'),
+      mongoPersistence = require('../../lib/persistence/mongo'),
       httpMocks = require('node-mocks-http'),
       factories = require('./factories'),
       S = require('string'),
@@ -30,37 +28,15 @@ process.on('uncaughtException', (err) => {
 
 global.OAuth2OIDC = OAuth2OIDC
 
-function getStateConfig(cb) {
-  return state.getDefaultStateConfig(
-      OAuth2OIDC.getDefaultSpecifications(),
-      sailsMemoryAdapter,
-      null,
-      cb
-  )
-}
-
 global.debug = require('debug')('oauth2-oidc')
-global.testConfig = (cb) => {
-  getStateConfig((err, ontology) => {
-    if (err) throw new Error(err);
-    cb(err, {
-      state: ontology,
-      login_url: '/login'
-    })
-  })
-}
-global.buildTestConfig = () => {
-  return new Promise((res, rej) => {
-    testConfig((err, cfg) => {
-      if (err) return rej(err);
-      res(cfg)
-    })
-  })
-}
+
+global.getState = () => Promise.resolve(mongoPersistence(
+  process.env.MONGO_URL || 'mongodb://localhost/oauth2-oidc-test'
+))
 
 let usernameCounter = 1
 global.nextUsername = () => {
-  return `chris${ usernameCounter++ }`
+  return `chris${ usernameCounter++ }-${ new Date().getTime() }`
 }
 
 let idCounter = 1
@@ -100,7 +76,16 @@ for (var f in factories) {
         console.log('factory ' + factoryName + ' not found', factories)
         throw new Error(`factory with name ${ factoryName } not found`);
       }
-      return store[factoryName].create(result)
+      if (!store[factoryName].create) {
+        const msg = 'create() of factory ' + factoryName + ' not found'
+        console.log(msg)
+        throw new Error(msg);
+      }
+      if (store[factoryName].validateAndCreate) {
+        return store[factoryName].validateAndCreate(result)
+      } else {
+        return store[factoryName].create(result)
+      }
     }
   })(f)
 }
@@ -112,7 +97,7 @@ global.getBasicClientAuthHeader = (client) => {
 global.buildUsableAccessToken = (factoryArguments, callback) => {
   let config, client, auth, refresh, user, access
   factoryArguments = factoryArguments || {}
-  Promise.resolve(factoryArguments.config || buildTestConfig()).then((c) => {
+  Promise.resolve(factoryArguments.config/* || buildTestConfig() */).then((c) => {
     config = c
     return buildClient(factoryArguments.client)
   }).then((client) => {
@@ -126,21 +111,22 @@ global.buildUsableAccessToken = (factoryArguments, callback) => {
   }).then((savedUser) => {
     debug('savedUser', savedUser)
     user = savedUser
-    return buildAuth(Object.assign({}, { client: client, user: user  }))
+    return buildAuth(Object.assign({}, { clientId: client._id, userId: user._id  }))
   }).then((auth) => {
     debug('buildUsableAccessToken, auth', auth)
     return config.state.collections.auth.create(auth)
   }).then((savedAuth) => {
     auth = savedAuth
-    return buildRefresh(Object.assign({}, { scope: client.scope, auth: auth }, factoryArguments.refresh ))
+    return buildRefresh(Object.assign({}, { scope: client.scope, authId: auth._id }, factoryArguments.refresh ))
   }).then((refresh) => {
     debug('buildUsableAccessToken, refresh', refresh)
     return config.state.collections.refresh.create(refresh)
   }).then((savedRefresh) => {
     refresh = savedRefresh
     return buildAccess(Object.assign({}, {
-      user: user.id,
-      client: client.id,
+      userId: user._id,
+      clientId: client._id,
+      authId: auth._id,
       refresh_token: refresh.token
     }, factoryArguments['access']))
   }).then((acc) => {

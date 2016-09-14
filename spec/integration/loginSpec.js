@@ -12,11 +12,15 @@ describe('Visit client', function() {
 
     client = new TestClient();
     username = nextUsername()
+    const clientKey = `client-${ Math.random() }-${ new Date().getTime() }`
 
-    testConfig(function(err, cfg) {
-      if (err) throw new Error(err);
-      config = cfg
-      provider = new TestProvider(config);
+    getState().then(state => {
+      state.collections.client.deleteMany({ key: clientKey })
+      return state
+    })
+    .then(state => {
+      config = { state, login_url: '/login' }
+      provider = new TestProvider(config)
 
       // make the provider listen
       const providerServer = provider.app.listen(function() {
@@ -25,7 +29,7 @@ describe('Visit client', function() {
 
         // define client config
         oauthClientConfig = {
-          clientID: 'client1',
+          clientID: clientKey,
           clientSecret: 'secret123',
           site: `http://localhost:${ providerPort }`,
           tokenPath: '/token',
@@ -42,12 +46,9 @@ describe('Visit client', function() {
           browser.visit(clientHomeUrl, done);
         })
       })
-    })
-  });
+    }).catch(err => { console.log('visit client, err', err); done(err) })
 
-  afterEach(function(done) {
-    config.state.connections.default._adapter.teardown(done)
-  })
+  });
 
   // to avoid regression of commit 6f923c6
   it('has config with all (more than one) collections', function(done) {
@@ -68,7 +69,7 @@ describe('Visit client', function() {
     })
   })
 
-  describe('when client1 exists', function() {
+  describe('when client exists', function() {
 
     beforeEach(function(done) {
       config.state.collections.client.create({
@@ -81,12 +82,12 @@ describe('Visit client', function() {
         ],
         scope: [ 'openid' ]
       }).then(function(client) {
-        const u = config.state.collections.user.create({
+        debug('when client exists, client', client)
+        return config.state.collections.user.validateAndCreate({
           sub: username,
           password: 'so-secret',
           passConfirm: 'so-secret',
         })
-        return u
       }).then(function(user) {
         done()
       }).catch((err) => {
@@ -96,6 +97,7 @@ describe('Visit client', function() {
     })
 
     it('allows logging in', function(done) {
+      debug('browser.html (before clicking link)', browser.html())
       browser.clickLink('a', function(err) {
         expect(err).toBe(undefined)
         debug('browser.text', browser.text())

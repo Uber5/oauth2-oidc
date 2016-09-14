@@ -1,38 +1,35 @@
 'use strict';
 
-const urlParse = require('url-parse')
+const urlParse = require('url-parse'),
+    debug = require('debug')('oauth2-oidc')
 
 describe('implicit flow', function() {
-  let oidc, config
+  let oidc
+
+  const state = () => oidc.options.state
 
   beforeEach(function(done) {
-    oidc = new OAuth2OIDC({ state: {}, login_url: '/login', })
-    buildTestConfig().then((c) => {
-      config = c
-      oidc.options.state = config.state
+    getState()
+    .then(state => new OAuth2OIDC({ state, login_url: '/login' }))
+    .then(o => {
+      oidc = o
       done()
     })
-  })
-
-  afterEach(function(done) {
-    config.state.connections.default._adapter.teardown(function(err) {
-      expect(err).toBeFalsy()
-      done()
-    })
+    .catch(err => { console.log('implicit flow, beforeEach, error', err); done(err) })
   })
 
   describe('when client allows it', function() {
     let app, client, req
     beforeEach(function(done) {
-      Promise.resolve(buildAndSaveClient(config.state.collections, {
+      Promise.resolve(buildAndSaveClient(state().collections, {
         implicitFlow: true
       })).then((savedClient) => {
         client = savedClient
         done()
-      })
+      }).catch(err => done(err))
     })
     describe('on correct authorization request', function() {
-      const state = 'some-state'
+      const requestState = Math.random().toString()
       beforeEach(function(done) {
         req = createRequest({
           query: {
@@ -40,20 +37,19 @@ describe('implicit flow', function() {
             client_id: client.key,
             redirect_uri: client.redirect_uris[0],
             scope: client.scope.join(','),
-            state: state
+            state: requestState
           }
         })
         req.client = client
         req.session = {}
-        // req.state = config.state
         app = express()
         app.use(oidc._useState())
         app.use(oidc._authorize())
-        Promise.resolve(buildAndSaveUser(config.state.collections, { password: '123', passConfirm: '123' })).then((user) => {
-          req.session.user = user
+        Promise.resolve(buildAndSaveUser(state().collections, { password: '123', passConfirm: '123' })).then((user) => {
+          req.session.user = user._id
           done()
         }).catch((err) => {
-          console.log('buildAndSaveUser, err', err)
+          debug('buildAndSaveUser, err', err)
           throw err
         })
       })
@@ -69,7 +65,7 @@ describe('implicit flow', function() {
           expect(data.access_token).toBeTruthy()
           expect(data.expires_in).toBeTruthy()
           expect(data.token_type).toBeTruthy()
-          expect(data.state).toEqual(state)
+          expect(data.state).toEqual(requestState)
           done()
         })
       })
@@ -80,7 +76,7 @@ describe('implicit flow', function() {
   describe('when client does not allow it', function() {
     let app, client, req
     beforeEach(function(done) {
-      Promise.resolve(buildAndSaveClient(config.state.collections, {
+      Promise.resolve(buildAndSaveClient(state().collections, {
         // implicitFlow: false
       })).then((savedClient) => {
         client = savedClient
@@ -88,7 +84,7 @@ describe('implicit flow', function() {
       })
     })
     describe('on correct authorization request', function() {
-      const state = 'some-state'
+      const requestState = Math.random().toString()
       beforeEach(function(done) {
         req = createRequest({
           query: {
@@ -96,11 +92,11 @@ describe('implicit flow', function() {
             client_id: client.key,
             redirect_uri: client.redirect_uris[0],
             scope: client.scope.join(','),
-            state: state
+            state: requestState
           }
         })
         req.client = client
-        req.state = config.state
+        req.state = state()
         app = express()
         app.use(oidc._authorize())
         done()
