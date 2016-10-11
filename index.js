@@ -718,9 +718,11 @@ class OAuth2OIDC {
           preferred_username: '(no preferred name set)'
         }
       }
-      const data = f(req.user)
-      res.send(data)
-      next()
+      Promise.resolve(f(req.user))
+      .then(userinfo => {
+        res.send(userinfo)
+        next()
+      }).catch(err => next(err))
     }
   }
 
