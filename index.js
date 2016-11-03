@@ -160,7 +160,7 @@ class OAuth2OIDC {
           if (req.client.refreshTokenOnImplicitFlow) {
             redirectUrl += '&refresh_token=' + encodeURIComponent(data.refresh_token)
           }
-          if (req.query.state) redirectUrl += ('&state=' + req.query.state)
+          if (req.query.state) redirectUrl += ('&state=' + encodeURIComponent(req.query.state))
           res.redirect(redirectUrl)
           next()
         }).catch((err) => {
