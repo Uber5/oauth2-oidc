@@ -119,7 +119,7 @@ class OAuth2OIDC {
           debug('_authorize, auth created', auth)
           return res.redirect(req.query.redirect_uri
             + uriQuerySeparator(req.query.redirect_uri) + 'code=' + encodeURIComponent(auth.code)
-            + '&state=' + req.query.state)
+            + '&state=' + encodeURIComponent(req.query.state))
         }).catch((err) => {
           debug('unable to authorize', err)
           next(err)
